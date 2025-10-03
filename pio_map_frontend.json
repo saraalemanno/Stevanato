@@ -1,0 +1,52 @@
+{
+    "device_id": "main_module_01",
+    "timestamp": "2025-07-24T14:30:00Z",
+    "configuration": {
+      "pins": [
+        {
+          "pio": "A",
+          "pin_number": 7,
+          "id": 31,
+          "function": "Digital Pin 31",
+          "mode": "output",
+          "state": 1
+        },
+        {
+          "pio": "A",
+          "pin_number": 2,
+          "id": 61,
+          "function": "Analog In 7",
+          "mode": "input",
+          "sampling_rate_hz": 2100
+        },
+        {
+          "pio": "B",
+          "pin_number": 15,
+          "id": 66,
+          "function": "Dac0",
+          "mode": "output",
+          "value": 2.5
+        },
+        {
+          "pio": "C",
+          "pin_number": 21,
+          "id": 9,
+          "function": "Digital Pin 9",
+          "mode": "output",
+          "state": 0
+        }
+      ],
+      "galvo": {
+        "enabled": true,
+        "x_position": 0.25,
+        "y_position": -0.15,
+        "trigger_mode": "external",
+        "scan_speed_hz": 500
+      },
+      "can_bus": {
+        "enabled": true,
+        "bitrate": 500000,
+        "mode": "normal"
+      }
+    }
+  }

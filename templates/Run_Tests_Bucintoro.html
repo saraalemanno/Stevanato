@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bucintoro Auto Test</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .device-block { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        textarea { width: 100%; height: 200px; margin-top: 10px; }
+        input, button { padding: 5px; margin-top: 5px 0; }
+    </style>
+</head>
+<body>
+    <h2>Bucintoro Auto Tests: Noise simulation, GPIO, Galvo, I2C, Encoder phases</h2>
+    <div id="devices"></div>
+    <div style="margin-bottom: 10px;">
+        <label for="numCamere">Number of connected Camera modules (1-10):</label><br>
+        <input type="number" id="numCamere" name="numCamere" min="1" max="10" value="1"><br>
+        <label for="numGalvo">Number of connected Galvo modules (1-10):</label><br>
+        <input type="number" id="numGalvo" name="numGalvo" min="1" max="10" value="1"><br>
+    </div>
+    <div id="serialNumberContainer"></div>
+    <div style="margin-top: 20px;">
+        <button id="runAutoLoopTest" onclick="RunAutoLoopTest()" style="padding: 10px 20px; font-size: 16px;">Run Auto Loop Test</button>
+        <button onclick="downloadReport()" style="padding: 10px 20px; font-size: 16px;">Download Complete Report</button>
+    </div>
+    <div style="margin-top: 20px;">
+        <button id="runCompleteTest" onclick="RunCompleteTest()" style="padding: 10px 20px; font-size: 16px;">Run Complete Simulation Test</button>
+        <button onclick="downloadReport()" style="padding: 10px 20px; font-size: 16px;">Download Complete Report</button>
+    </div>
+    <h3>Console Output:</h3>
+    <div id="consoleOutput" style="white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;"></div>
+    <script src= "/static/socket.io.min.js"></script>
+    <script>
+
+        function updateSerialInputs() {
+            const numCamere = parseInt(document.getElementById("numCamere").value);
+            const numGalvo = parseInt(document.getElementById("numGalvo").value);
+            const container = document.getElementById("serialNumberContainer");
+
+            container.innerHTML = "";
+
+            const mainSection = document.createElement("div");
+            mainSection.innerHTML = "<h3>Main Module Serial Number</h3>";
+            const mainLabel = document.createElement("label");
+            mainLabel.textContent = "Main Serial Number: ";
+            const mainInput = document.createElement("input");
+            mainInput.type = "text";
+            mainInput.name = "mainSerial";
+            mainInput.id = "mainSerial";
+            mainSection.appendChild(mainLabel);
+            mainSection.appendChild(mainInput);
+            mainSection.appendChild(document.createElement("br"));
+            container.appendChild(mainSection);
+
+            const cameraSection = document.createElement("div");
+            cameraSection.innerHTML = "<h3>Camera Modules Serial Numbers</h3>";
+            for (let i = 1; i <= numCamere; i++) {
+                const label = document.createElement("label");
+                label.textContent = `Camera ${i} Serial Number: `;
+                const input = document.createElement("input");
+                input.type = "text";
+                input.name = `cameraSerial${i}`;
+                input.id = `cameraSerial${i}`;
+                cameraSection.appendChild(label);
+                cameraSection.appendChild(input);
+                cameraSection.appendChild(document.createElement("br"));
+            }
+            container.appendChild(cameraSection);
+
+            
+            const galvoSection = document.createElement("div");
+            galvoSection.innerHTML = "<h3>Galvo Modules Serial Numbers</h3>";
+            for (let i = 1; i <= numGalvo; i++) {
+                const label = document.createElement("label");
+                label.textContent = `Galvo ${i} Serial Number: `;
+                const input = document.createElement("input");
+                input.type = "text";
+                input.name = `galvoSerial${i}`;
+                input.id = `galvoSerial${i}`;
+                galvoSection.appendChild(label);
+                galvoSection.appendChild(input);
+                galvoSection.appendChild(document.createElement("br"));
+            }
+            container.appendChild(galvoSection);
+        }
+
+        document.getElementById("numCamere").addEventListener("change", updateSerialInputs);
+        document.getElementById("numGalvo").addEventListener("change", updateSerialInputs);
+        window.addEventListener("DOMContentLoaded", updateSerialInputs);
+
+        let autotest_in_progress = false;
+        async function RunAutoLoopTest() {
+            const button = document.getElementById('runAutoLoopTest');
+            const consoleDiv = document.getElementById('consoleOutput');
+            const numCamere = parseInt(document.getElementById('numCamere').value);
+            const numGalvo = parseInt(document.getElementById('numGalvo').value);
+
+            const mainSerial = document.getElementById(`mainSerial`).value;
+            const cameraSerials = [];
+            const galvoSerials = [];
+            
+            for (let i = 1; i <= numCamere; i++) {
+                const val = document.getElementById(`cameraSerial${i}`).value || "";
+                cameraSerials.push(val);
+            }
+            for (let i = 1; i <= numGalvo; i++) {
+                const val = document.getElementById(`galvoSerial${i}`).value || "";
+                galvoSerials.push(val);
+            }
+
+            if (!autotest_in_progress) {
+                autotest_in_progress = true;
+                button.textContent = 'Stop Bucintoro Auto Loop Test';
+                consoleDiv.innerHTML += "<br><strong>Bucintoro Auto Loop Test Output:</strong><br>";
+                try{
+                    const response = await fetch('/run_test_loop_bucintoro', {
+                        method: 'POST',
+                         headers: {
+                            'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify({
+                            numCamere,
+                            numGalvo,
+                            mainSerial,
+                            cameraSerials,
+                            galvoSerials
+                         }) 
+                    });
+                    const result = await response.json();
+                    consoleDiv.innerHTML += result.output;
+                    if (result.reportPath) {
+                        consoleDiv.setAttribute('data-report-path', result.reportPath);
+                        consoleDiv.innerHTML += `<br>Report generated<br>`;
+                    }
+                } catch (error) {
+                    console.error = ("Error during Bucintoro Auto Loop Test:", error);
+                    alert('Error during Bucintoro Auto Loop Test: ');
+                } finally {
+                    autotest_in_progress = false;
+                    button.textContent = 'Run Complete Auto Loop Test';
+                }
+            } else {
+                try {
+                    const response = await fetch('/stop_test_loop_bucintoro', { method: 'POST' });
+                    const result = await response.json();
+                    alert(result.status);
+                } catch (error) {
+                    console.error("Error stopping Bucintoro Auto Loop Test:", error);
+                } finally {
+                    test_i2c_in_progress = false;
+                    button.textContent = 'Run Complete Auto Loop Test';
+                }
+            }
+        }
+
+        let simulation_in_progress = false;
+        async function RunCompleteTest() {
+            const button = document.getElementById('runCompleteTest');
+            const consoleDiv = document.getElementById('consoleOutput');
+            const numCamere = parseInt(document.getElementById('numCamere').value);
+            const numGalvo = parseInt(document.getElementById('numGalvo').value);
+
+            const mainSerial = document.getElementById(`mainSerial`).value;
+            const cameraSerials = [];
+            const galvoSerials = [];
+            
+            for (let i = 1; i <= numCamere; i++) {
+                const val = document.getElementById(`cameraSerial${i}`).value || "";
+                cameraSerials.push(val);
+            }
+            for (let i = 1; i <= numGalvo; i++) {
+                const val = document.getElementById(`galvoSerial${i}`).value || "";
+                galvoSerials.push(val);
+            }
+
+            if (!simulation_in_progress) {
+                simulation_in_progress = true;
+                button.textContent = 'Stop Complete Simulation Test';
+                consoleDiv.innerHTML += "<br><strong>Complete Simulation Test Output:</strong><br>";
+                try{
+                    const response = await fetch('/run_complete_test_bucintoro', {
+                        method: 'POST',
+                         headers: {
+                            'Content-Type': 'application/json'
+                         },
+                         body: JSON.stringify({
+                            numCamere,
+                            numGalvo,
+                            mainSerial,
+                            cameraSerials,
+                            galvoSerials
+                         }) 
+                    });
+                    const result = await response.json();
+                    consoleDiv.innerHTML += result.output;
+                    if (result.reportPath) {
+                        consoleDiv.setAttribute('data-report-path', result.reportPath);
+                        consoleDiv.innerHTML += `<br>Report generated<br>`;
+                    }
+                } catch (error) {
+                    console.error = ("Error during Complete Simulation Test:", error);
+                    alert('Error during Complete Simulation Test: ');
+                } finally {
+                    simulation_in_progress = false;
+                    button.textContent = 'Run Complete Simulation Test';
+                }
+            } else {
+                try {
+                    const response = await fetch('/stop_complete_test_bucintoro', { method: 'POST' });
+                    const result = await response.json();
+                    alert(result.status);
+                } catch (error) {
+                    console.error("Error stopping Complete Simulation Test:", error);
+                } finally {
+                    simulation_in_progress = false;
+                    button.textContent = 'Run Complete Simulation Test';
+                }
+            }
+        }
+
+
+        function downloadReport() {
+            const reportPath = document.getElementById('consoleOutput').getAttribute('data-report-path');
+            if (reportPath) {
+                window.location.href = '/download-report?path=' + encodeURIComponent(reportPath);
+                consoleDiv.innerHTML += `<br>Report saved to: <a href="/download-report?path=${encodeURIComponent(result.reportPath)}">${result.reportPath}</a>`;
+            } else {
+                alert('No report available to download.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+            socket.on('test_output', function(data) {
+                const outputDiv = document.getElementById('consoleOutput');
+                if (outputDiv) {
+                outputDiv.innerHTML += data.line + '<br>';
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
