@@ -9,6 +9,7 @@
 from pydwf import DwfLibrary, DwfAnalogOutNode, DwfAnalogOutFunction, DwfAnalogIO
 import time
 import requests
+import encoder_pos
 
 dwf = DwfLibrary()
 encoder_running = True
@@ -17,38 +18,48 @@ ready2go = False
 # The encoder has 3 phases: A, B, and Z. Each phase is represented by a pair of DIO pins. 
 # The two pins are simulated to be complementary, meaning when one is high, the other is low.
 def start_encoder_simulation(device):
-    period = 0.1                                            # Period in seconds (10 Hz)
+    period = 0.1                                            # Period in seconds (10 Hz)[]
     quarter_period = period /  4                            # Quarter period in seconds
     device.digitalIO.outputEnableSet(0b100111111)            # DIO 0-5
     device.digitalIO.configure()
     global encoder_running
     isRunningPin = 0b0000000000                              # DIO8 isRunning pin low
     impulse_count = 0
+    pos_encoder = 0
 
     try:
         while encoder_running:
             # Stato 1: A=1 /A=0 B=0 /B=1 
             device.digitalIO.outputSet(isRunningPin | 0b0000011001) 
             device.digitalIO.configure()
+            encoder_pos.pos_encoder = pos_encoder
+            pos_encoder = (pos_encoder + 1) % 400
             time.sleep(0.025)
 
             # Stato 2: A=1 /A=0 B=1 /B=0
             device.digitalIO.outputSet(isRunningPin | 0b0000011010) 
             device.digitalIO.configure()
+            encoder_pos.pos_encoder = pos_encoder
+            pos_encoder = (pos_encoder + 1) % 400
             time.sleep(0.025)
 
             # Stato 3: A=0 /A=1 B=1 /B=0
             device.digitalIO.outputSet(isRunningPin | 0b0000010110)
             device.digitalIO.configure()
+            encoder_pos.pos_encoder = pos_encoder
+            pos_encoder = (pos_encoder + 1) % 400
             time.sleep(0.025)
 
             # Stato 4: A=0 /A=1 B=0 /B=1
             current_state = 0b0000000101
             device.digitalIO.outputSet(isRunningPin | 0b0000010101)
             device.digitalIO.configure()
+            encoder_pos.pos_encoder = pos_encoder
+            pos_encoder = (pos_encoder + 1) % 400
             time.sleep(0.015)
             
             impulse_count += 1
+            #encoder_pos.update_position(impulse_count)
 
             # Phase Z impulse every 100 impulses of A and B
             if impulse_count % 100 == 0:

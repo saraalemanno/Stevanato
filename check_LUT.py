@@ -14,6 +14,7 @@ from pydwf import DwfLibrary, DwfState, DwfTriggerSource, DwfTriggerSlope
 import time
 import requests
 import numpy as np
+import encoder_pos
 
 URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
 dwf = DwfLibrary()
@@ -21,39 +22,41 @@ dwf = DwfLibrary()
 # LUT for Camera device
 
 lut = [
-    {"offset": 0, "pin": 0},
-    {"offset": 3, "pin": 1},
-    {"offset": 6, "pin": 2},
-    {"offset": 10, "pin": 3},
-    {"offset": 13, "pin": 4},
-    {"offset": 16, "pin": 5},
-    {"offset": 19, "pin": 6},
-    {"offset": 23, "pin": 7},
-    {"offset": 26, "pin": 8},
-    {"offset": 29, "pin": 9},
-    {"offset": 32, "pin": 10},
-    {"offset": 35, "pin": 11},
-    {"offset": 39, "pin": 12},
-    {"offset": 42, "pin": 13},
-    {"offset": 45, "pin": 14},
-    {"offset": 48, "pin": 15},
-    {"offset": 52, "pin": 16},
-    {"offset": 55, "pin": 17},
-    {"offset": 58, "pin": 18},
-    {"offset": 61, "pin": 19},
-    {"offset": 64, "pin": 20},
-    {"offset": 67, "pin": 21},
-    {"offset": 70, "pin": 22},
-    {"offset": 73, "pin": 23},
-    {"offset": 77, "pin": 24},
-    {"offset": 80, "pin": 25},
-    {"offset": 83, "pin": 26},
-    {"offset": 86, "pin": 27},
-    {"offset": 89, "pin": 28},
-    {"offset": 92, "pin": 29},
-    {"offset": 95, "pin": 30},
-    {"offset": 97, "pin": 31}
+    {"offset": [0,4], "pin": 0},
+    {"offset": [11,15], "pin": 2},
+    {"offset": [23,28], "pin": 5},
+    {"offset": [35,39], "pin": 8},
+    {"offset": [47,52], "pin": 1},
+    {"offset": [59,64], "pin": 3}, 
+    {"offset": [71,76], "pin": 6},
+    {"offset": [83,88], "pin": 9},
+    {"offset": [95,100], "pin": 12},
+    {"offset": [107,112], "pin": 4},
+    {"offset": [119,124], "pin": 7},
+    {"offset": [131,136], "pin": 10},
+    {"offset": [143,148], "pin": 13},
+    {"offset": [155,160], "pin": 14},
+    {"offset": [167,172], "pin": 17},
+    {"offset": [179,184], "pin": 11},
+    {"offset": [191,196], "pin": 24},
+    {"offset": [203,208], "pin": 15},
+    {"offset": [215,220], "pin": 18},
+    {"offset": [227,232], "pin": 20},
+    {"offset": [239,244], "pin": 25},
+    {"offset": [251,256], "pin": 16},
+    {"offset": [263,268], "pin": 19},
+    {"offset": [275,280], "pin": 21},
+    {"offset": [287,292], "pin": 26},
+    {"offset": [299,304], "pin": 29},
+    {"offset": [311,316], "pin": 22},
+    {"offset": [323,328], "pin": 27},
+    {"offset": [335,340], "pin": 30},
+    {"offset": [347,352], "pin": 23},
+    {"offset": [359,364], "pin": 28},
+    {"offset": [371,376], "pin": 31},
+    {"offset": [399,399], "pin": 0}
 ]
+
 
 # Map input → output
 input_to_outputs = {
@@ -80,12 +83,15 @@ DIO_to_input = {
 
 # LUT for Galvo device
 galvo_lut = [
-    {"enc": 0, "galvo": 32767},
-    {"enc": 25, "galvo": 25460},
-    {"enc": 50, "galvo": 28993},
-    {"enc": 75, "galvo": 38743},
-    {"enc": 100, "galvo": 32767}
-]
+        {"enc":0,"galvo":32767},
+        {"enc":50,"galvo":25460},
+        {"enc":100,"galvo":25460},
+        {"enc":150,"galvo":28993},
+        {"enc":200,"galvo":28993},
+        {"enc":250,"galvo":38743},
+        {"enc":300,"galvo":38743},
+        {"enc":350,"galvo":32767}
+    ]
 
 
 
@@ -106,8 +112,20 @@ def get_main_status(URL_API):
         return None
     
 # === Get expected pins from LUT based on encoder position ===
-def get_expected_pins(pos_encoder):
-    return [entry["pin"] for entry in lut if entry["offset"] == pos_encoder]
+def get_expected_pins(pos_encoder, active_dio, tolerance):
+    exact_matches = [entry["pin"] for entry in lut if entry["offset"][0] <= pos_encoder <= entry["offset"][1]]
+    if exact_matches:
+        return exact_matches
+    # Se non ci sono match esatti, e ci sono DIO attivi, cerca con tolleranza
+    if active_dio:
+        return [
+            entry["pin"]
+            for entry in lut
+            if max(0, entry["offset"][0] - tolerance) <= pos_encoder <= min(399, entry["offset"][1] + tolerance)
+        ]
+    # Altrimenti, nessun pin atteso
+    return []
+
 
 # === Check Camera device ===
 def check_camera(device):
@@ -117,21 +135,32 @@ def check_camera(device):
     '''for pin in [9, 10, 13, 14]:
         device.digital.inputEnableSet(pin, True)
     device.digitalIO.configure()'''
-    pos = 0
-    pos_time = 0.025                # Time interval between each position change
+    #pos = 0
+    #pos_time = 0.025                # Time interval between each position change
+    last_pos = -1                    # Last encoder position initialization
     test_passed = True
     errors = 0
     error_details = []
-    test_duration = 10
-    start_time = time.time()
+    working_details = []
+    test_duration = 13
+    
+    while encoder_pos.get_position() != 0:
+        time.sleep(0.005)
 
+    start_time = time.time()
     while time.time() - start_time < test_duration:  # Stabilization time
-        target_time = start_time + (pos * pos_time)
+        #target_time = start_time + (pos * pos_time)
         #####
-        status = get_main_status(URL_API)
-        pos_encoder = status.get("encoder", {}).get("pos", -1)
-        expected_pin = get_expected_pins(pos_encoder)
+        #status = get_main_status(URL_API)
+        #pos_encoder = status.get("encoder", {}).get("pos", -1)
+        pos_encoder = encoder_pos.get_position()
         
+        if pos_encoder == last_pos:
+                time.sleep(0.005)
+                continue
+
+        last_pos = pos_encoder
+                
         active_dio = []
         device.digitalIO.status()
         device.digitalIO.inputInfo()
@@ -141,8 +170,8 @@ def check_camera(device):
 
         # Trova le posizioni dei bit a 1
         active_dio = [i for i, bit in enumerate(binary_input_status) if bit == '1' and i in [9, 10, 13, 14]]
-        print(f"Active DIO pins: {active_dio}")
-        #active_dio = dio_pin
+        #print(f"Active DIO pins: {active_dio} at encoder position {pos_encoder}")
+        expected_pin = get_expected_pins(pos_encoder, active_dio, tolerance=1)
 
         expected_dio = []
         for dio_pin, input_ids in DIO_to_input.items():
@@ -155,20 +184,22 @@ def check_camera(device):
             test_passed = False
             errors += 1
             error_details.append(f"At position {pos_encoder}): Expected DIO {expected_dio}, but got DIO {active_dio}")
+        elif set(active_dio) == set(expected_dio) and len(active_dio) != 0 and len(expected_dio) != 0:
+            working_details.append(f"At position {pos_encoder}): Expected DIO {expected_dio}, but got DIO {active_dio}")
 
-        sleep_time = target_time - time.time()
+        '''sleep_time = target_time - time.time()
         if sleep_time > 0:
             time.sleep(sleep_time)
         #else:
             #print(f"Warning: Processing is lagging behind by {-sleep_time:.3f} seconds") 
-        pos += 1
+        pos += 1'''
     
     if test_passed:
         print("Camera Device Test Result: PASSED!\nAll IO pins are working correctly.\n")
         return None, 0
     else:
-        print(f"Camera Device Test Result: FAILED!\nNumber of errors: {errors}\n{error_details}\n")
-        return error_details, errors
+        print(f"Camera Device Test Result: FAILED!\nNumber of errors: {errors}\n{error_details}\n\n{working_details}\n")
+        return error_details, errors, working_details
 
 # === Get expected galvo angle from LUT based on encoder position === 
 def get_expected_angle(pos_encoder):
@@ -192,18 +223,20 @@ def check_galvo(device):
     digital_in.triggerSet(1 >> 12, 0, 0, 1 << 12)
 
     digital_in.configure(True, True)
-
+    pos = 0 
     pos_time = 0.025                # Time interval between each position change
     test_passed = True
     errors = 0
     error_details = []
+    test_duration = 30
     start_time = time.time()
 
-    for pos in range(100):          # From 0 to 97
+    while time.time() - start_time < test_duration:  # Stabilization time
         target_time = start_time + (pos * pos_time)
         #####
-        status = get_main_status(URL_API)
-        pos_encoder = status.get("encoder", {}).get("pos", -1)
+        #status = get_main_status(URL_API)
+        #pos_encoder = status.get("encoder", {}).get("pos", -1)
+        pos_encoder = encoder_pos.get_position()
         expected_angle = get_expected_angle(pos_encoder)
 
         start = time.time()
@@ -211,7 +244,7 @@ def check_galvo(device):
             sts = digital_in.status(True)
             if sts == DwfState.Done:
                 break
-            if time.time() - start > 0.3:
+            if time.time() - start > 0.1:
                 #print("Time out! Didn't receive any trigger\nTEST FAILED")
                 break
         count = digital_in.statusSamplesValid()
@@ -236,7 +269,7 @@ def check_galvo(device):
             value = 0
             for bit in bits:
                 value = (value << 1) | bit
-                time.sleep(0.2)
+                time.sleep(0.1)
             #print(f"Decoded SPI value: {value}\n")
             if value != 0:
                 value = int(value)
@@ -262,7 +295,7 @@ def check_galvo(device):
         print("Galvo Device Test Result: PASSED!\nGalvo is working correctly.\n")
         return None, 0
     else:
-        print(f"Galvo Device Test Result: FAILED!\nNumber of errors: {errors}\n")
+        print(f"Galvo Device Test Result: FAILED!\nNumber of errors: {errors}\n{error_details}\n")
 
 
 

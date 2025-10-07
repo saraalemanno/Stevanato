@@ -69,21 +69,21 @@ if __name__ == "__main__":
         addresses_C = camera_addresses[:Nmodule_camere]
         for address in addresses_C:
             send_configuration_camera(address)
-            time.sleep(15)
+            time.sleep(10)
             
         galvo_addresses = list(range(30,40))
         addresses_G = galvo_addresses[:Nmodule_galvo]
         for address_G in addresses_G:
             send_configuration_galvo(address_G)
-            time.sleep(15)
+            time.sleep(10)
 
         # Add Main Device
         script_addMainDevice = 'add_MainDevice.py'
         subprocess.run(['python', '-u', script_addMainDevice])
         send_configuration_pulse(10)                                          # Send configuration to Pulse device
-        time.sleep(10)
+        time.sleep(7)
         encoder_simulation_v1.ready2go = True
-        time.sleep(3)
+        time.sleep(5)
         errors = check_camera(device)
         time.sleep(15)
         errors = check_galvo(device)
