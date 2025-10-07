@@ -83,14 +83,14 @@ DIO_to_input = {
 
 # LUT for Galvo device
 galvo_lut = [
-        {"enc":0,"galvo":32767},
-        {"enc":50,"galvo":25460},
-        {"enc":100,"galvo":25460},
-        {"enc":150,"galvo":28993},
-        {"enc":200,"galvo":28993},
-        {"enc":250,"galvo":38743},
-        {"enc":300,"galvo":38743},
-        {"enc":350,"galvo":32767}
+        {"enc":[0,40],"galvo":32767},
+        {"enc":[50,90],"galvo":25460},
+        {"enc":[100,140],"galvo":25460},
+        {"enc":[150,190],"galvo":28993},
+        {"enc":[200,240],"galvo":28993},
+        {"enc":[250,290],"galvo":38743},
+        {"enc":[300,340],"galvo":38743},
+        {"enc":[350,390],"galvo":32767}
     ]
 
 
@@ -202,10 +202,15 @@ def check_camera(device):
         return error_details, errors, working_details
 
 # === Get expected galvo angle from LUT based on encoder position === 
-def get_expected_angle(pos_encoder):
+'''def get_expected_angle(pos_encoder):
     for entry in galvo_lut:
         if entry["enc"] == pos_encoder:
             return entry["galvo"]
+    return None'''
+def get_active_interval(pos_encoder):
+    for entry in galvo_lut:
+        if entry["enc"][0] <= pos_encoder <= entry["enc"][1]:
+            return entry
     return None
 
 # === Check Galvo device ===
@@ -223,79 +228,75 @@ def check_galvo(device):
     digital_in.triggerSet(1 >> 12, 0, 0, 1 << 12)
 
     digital_in.configure(True, True)
-    pos = 0 
-    pos_time = 0.025                # Time interval between each position change
     test_passed = True
     errors = 0
-    error_details = []
-    test_duration = 30
+    error_details_G = []
+    working_details_G = []
+    validated_intervals = set()
+    test_duration = 60
     start_time = time.time()
 
     while time.time() - start_time < test_duration:  # Stabilization time
-        target_time = start_time + (pos * pos_time)
-        #####
-        #status = get_main_status(URL_API)
-        #pos_encoder = status.get("encoder", {}).get("pos", -1)
+
         pos_encoder = encoder_pos.get_position()
-        expected_angle = get_expected_angle(pos_encoder)
+        #expected_angle = get_expected_angle(pos_encoder)
+        interval = get_active_interval(pos_encoder)
+        if interval and tuple(interval["enc"]) not in validated_intervals:
+            expected_angle = interval["galvo"]
+            interval_start = interval["enc"][0]
+            interval_end = interval["enc"][1]
+            received = False
+            wrong_value = None
 
-        start = time.time()
-        while True:
-            sts = digital_in.status(True)
-            if sts == DwfState.Done:
-                break
-            if time.time() - start > 0.1:
-                #print("Time out! Didn't receive any trigger\nTEST FAILED")
-                break
-        count = digital_in.statusSamplesValid()
-        samples = digital_in.statusData(count)
-        samples = np.array(samples)
+            timeout = time.time() + 1.5
+            while time.time() < timeout:
+                current_pos = encoder_pos.get_position()
+                if current_pos > interval_end:
+                    break
+                sts = digital_in.status(True)
+                if sts == DwfState.Done:
+                    count = digital_in.statusSamplesValid()
+                    samples = digital_in.statusData(count)
+                    samples = np.array(samples)
 
-        csn = (samples >> 12) & 1
-        clk = (samples >> 6) & 1
-        data = (samples >> 7) & 1
+                    csn = (samples >> 12) & 1
+                    clk = (samples >> 6) & 1
+                    data = (samples >> 7) & 1
 
-        # Decodifica SPI (falling edge del clock con CS attivo basso)
-        bits = []
-        capturing = False
-        clock = 0
-        for i in range(1, len(samples)):
-            if csn[i] == 0:
-                if clk[i-1] == 1 and clk[i] == 0:
-                    bits.append(data[i])
-                    capturing = True
-                    clock += 1
-        if len(bits) >= 16:
-            value = 0
-            for bit in bits:
-                value = (value << 1) | bit
-                time.sleep(0.1)
-            #print(f"Decoded SPI value: {value}\n")
-            if value != 0:
-                value = int(value)
-                degrees = ((value - 32767) / 32767) * 16
-                print(f"Angle in degrees: {degrees}")
-                if value != expected_angle:
-                    test_passed = False
-                    errors += 1
-                    error_details.append(f"At position {pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {value}")
-            else:
-                print("Value = 0")
-        else:
-            print("Incomplete: Not enough bits received!\nTEST FAILED!")
-            test_passed = False
-
-        sleep_time = target_time - time.time()
-        if sleep_time > 0:
-            time.sleep(sleep_time)
-        else:
-            print(f"Warning: Processing is lagging behind by {-sleep_time:.3f} seconds at position {pos}") 
-
+                    bits = []
+                    for i in range(1, len(samples)):
+                        if csn[i] == 0 and clk[i-1] == 1 and clk[i] == 0:
+                            bits.append(data[i])
+                    if len(bits) >= 16:
+                        value = 0
+                        for bit in bits:
+                            value = (value << 1) | bit
+                        if value == expected_angle:
+                            received = True
+                            validated_intervals.add(tuple(interval["enc"]))
+                            working_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, got {value}")
+                            break
+                        else:
+                            wrong_value = value
+                time.sleep(0.05)
+            if not received:
+                test_passed = False
+                errors += 1
+                if wrong_value:
+                    error_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
+                    #print(f"At position {pos_encoder} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
+                else:
+                    error_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
+                    #print(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
+        time.sleep(0.005)
+            
     if test_passed:
-        print("Galvo Device Test Result: PASSED!\nGalvo is working correctly.\n")
-        return None, 0
+        print("Galvo Device Test Result: PASSED!\nAll expected angles were received correctly.")
+        return None, 0, working_details_G
     else:
-        print(f"Galvo Device Test Result: FAILED!\nNumber of errors: {errors}\n{error_details}\n")
+        print(f"Galvo Device Test Result: FAILED!\nNumber of errors: {errors}\n")
+        return error_details_G, errors, working_details_G
+
 
 
 
