@@ -1,6 +1,8 @@
 # Import necessary libraries
 import socketio 
 import time
+from URL import URL_BACKEND
+
 out_mask = 0  
 current_pin = None
 end_test = False
@@ -9,7 +11,7 @@ def gpio_autoloop_test(active_inputs, active_outputs):
     if not active_outputs:
         return
     elif not active_inputs:
-        print(f"Continuity test FAILED: No active input for output: {active_outputs}!")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity test \033[1m\033[91mFAILED\033[0m: No active input for output: {active_outputs}!")
         return 
     
     expected_inputs = set()
@@ -20,20 +22,21 @@ def gpio_autoloop_test(active_inputs, active_outputs):
         #print(f"Active inputs: {active_inputs}")
 
     if not expected_inputs.intersection(active_inputs):
-        print(f"Continuity test FAILED for output {active_outputs}: No active input corresponding to the active output!\n")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity test \033[1m\033[91mFAILED\033[0m for output {active_outputs}: No active input corresponding to the active output!\n")
         return
     elif len(active_inputs) > len(expected_inputs):
-        print(f"Continuity test PASSED fro output: {active_outputs}. Shortcircuit test FAILED: More than one active input for the same output. Active inputs: {active_inputs}!\n")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity test \033[1m\033[92mPASSED\033[0m fro output: {active_outputs}. Shortcircuit test \033[1m\033[91mFAILED\033[0m: More than one active input for the same output. Active inputs: {active_inputs}!\n")
         return
     elif set(active_inputs) != expected_inputs:
-        print(f"Continuity and Shortcircuit tests PASSED for output {active_outputs}. Correspondence test FAILED: Active inputs do not correspond to the active outputs!")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity and Shortcircuit tests \033[1m\033[92mPASSED\033[0m for output {active_outputs}. Correspondence test \033[1m\033[91mFAILED\033[0m: Active inputs do not correspond to the active outputs!")
         return
     else:
-        print(f"ALL tests PASSED for Output: {active_outputs}\n")
+        print(f"[BOTH]\033[1m\033[92m[OK]\033[0m ALL tests \033[1m\033[92mPASSED\033[0m for Output: {active_outputs}\n")
 
 def run_gpio_test(address):
     # Define the required variables
-    URL_BACKEND = 'http://10.10.0.25'                       # Bucintoro Backend URL
+    #URL_BACKEND = 'http://10.10.0.25'                       # Bucintoro Backend URL
+    global URL_BACKEND
     sio = socketio.Client()
     gpio = 0                                                # GPIO number, keep it as 0
     global end_test
@@ -51,7 +54,7 @@ def run_gpio_test(address):
     device_namespace = f"/device{address}"
     device_name = f"Camere{address}"
     deviceType = "C"
-    print(f"====== RUN GPIO TEST FOR CAMERA{address} ======")
+    print(f"[BOTH]====== RUN GPIO TEST FOR CAMERA{address} ======")
 
     # Connection handler for the slave devices  
     @sio.event(namespace = device_namespace)
@@ -71,7 +74,7 @@ def run_gpio_test(address):
             'name': device_name,
         }
         sio.emit("addDeviceManually", addDevice_payload, namespace=configuration_namespace)       
-        print("Adding device ", device_name, " with address: ", address)
+        print("[REPORT]Adding device ", device_name, " with address: ", address)
         time.sleep(2)                                      
         # Changing working mode to manual
         change_mode_payload = {
@@ -80,6 +83,7 @@ def run_gpio_test(address):
             "new_mode": "man"
         }
         sio.emit("change_mode", change_mode_payload["new_mode"], namespace=device_namespace)
+        print("[REPORT]Changing mode to MANUAL...")
         time.sleep(3)
 
         # Setting selected OUTPUTs to HIGH level one at a time
@@ -96,15 +100,15 @@ def run_gpio_test(address):
             time.sleep(4)
         if end_test:
             sio.disconnect()
-            print(f"====== END GPIO TEST FOR CAMERA{address} ======")
+            print(f"[BOTH]====== END GPIO TEST FOR CAMERA{address} ======")
 
     # Acknowledgment for mode change
     @sio.on("changed_mode", namespace=device_namespace)
     def on_changed_mode(data):
         if data.get("status") == "OK":
-            print("Mode changed successfully for device with address", address)
+            print("[REPORT]Mode changed successfully for device with address", address)
         else:
-            print("Failed to change mode:", data.get("info"))
+            print("[REPORT]Failed to change mode:", data.get("info"))
 
     # Acknowledgment for manual command
     already_turned_off = False
@@ -124,7 +128,7 @@ def run_gpio_test(address):
             already_turned_off = True 
             current_pin = None                                               # Reset current pin after turning it off                                          
         elif data["status"] == "KO":
-            print("Manual command KO:", data["info"], "!!")
+            print("[REPORT]Manual command KO:", data["info"], "!!")
 
         '''if end_test:
             sio.disconnect()

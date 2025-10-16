@@ -2,16 +2,17 @@
 
 import socketio
 import time
+from URL import URL_BACKEND
 
-URL_BACKEND = 'http://10.10.0.25'                       # Bucintoro Backend URL
+#URL_BACKEND = 'http://10.10.0.25'                       # Bucintoro Backend URL
 sio = socketio.Client()
 
-main_address = 10                                       # Main device address
-main_name = "Main"                                      # Main device name
-
+device_address = 10                                       # Main device address
 config_namespace = '/config'                            # Namespace for configuration
 device_namespace = '/device10'                          # Namespace for device communication
 system_namespace = "/system"
+device_name = "Pulse"
+deviceType = "P"
 
 device_ready = False
 
@@ -19,10 +20,11 @@ device_ready = False
 def connect():
     #print("Connecting to /config...")
     addMainDevice = {
-        'address': main_address,
-        'name': main_name
+        'address': device_address,
+        'name': device_name
     }
     sio.emit('addDeviceManually', addMainDevice, namespace=config_namespace)
+    print("[REPORT]Adding device ", device_name, " with address: ", device_address)
     #time.sleep(2)
 
 @sio.event(namespace=device_namespace)
@@ -43,7 +45,7 @@ stamp = 0
 def on_manual_control_status(data):
     global stamp
     if stamp == 0:
-        print("Device found and connected.")
+        print(f"[BOTH]Added device: {device_name}")
         stamp += 1
 
 if __name__ == '__main__':
@@ -52,9 +54,9 @@ if __name__ == '__main__':
         time.sleep(3)
         sio.disconnect()
     except socketio.exceptions.ConnectionError as e:
-        print(f"Connection error: {e}")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Connection error: {e}. Exiting...")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m An error occurred: {e}. Exiting...")
     except KeyboardInterrupt:
-        print("Interrotto dall'utente")
+        print("[BOTH]Interrupted by user. Exiting...")
         sio.disconnect()

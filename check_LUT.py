@@ -15,8 +15,11 @@ import time
 import requests
 import numpy as np
 import encoder_pos
+import sys
+from URL import URL_API
 
-URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
+sys.stdout.reconfigure(encoding='utf-8')  # To print special characters
+#URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
 dwf = DwfLibrary()
 
 # LUT for Camera device
@@ -93,24 +96,6 @@ galvo_lut = [
         {"enc":[350,390],"galvo":32767}
     ]
 
-
-
-# === Fetch main status from Bucintoro API ===
-# This function retrieves the main status from the Bucintoro API.
-def get_main_status(URL_API):
-    try:
-        response = requests.get(URL_API)
-        if response.status_code == 200:
-            main_status = response.json()
-            #print("Main status received:", data)
-            return main_status
-        else:
-            print(f"Error fetching main status: {response.status_code}")
-            return None
-    except requests.exceptions.RequestException as e:
-        print(f"Request error: {e}")
-        return None
-    
 # === Get expected pins from LUT based on encoder position ===
 def get_expected_pins(pos_encoder, active_dio, tolerance):
     exact_matches = [entry["pin"] for entry in lut if entry["offset"][0] <= pos_encoder <= entry["offset"][1]]
@@ -129,14 +114,7 @@ def get_expected_pins(pos_encoder, active_dio, tolerance):
 
 # === Check Camera device ===
 def check_camera(device):
-    # Configure DIO 9,10,13,14 as input
-    #input_mask = (1<<9) | (1<<10) | (1<<13) | (1<<14)
-    #device.digital.inputEnableSet(input_mask, True)
-    '''for pin in [9, 10, 13, 14]:
-        device.digital.inputEnableSet(pin, True)
-    device.digitalIO.configure()'''
-    #pos = 0
-    #pos_time = 0.025                # Time interval between each position change
+    print("[BOTH]======== START OF THE CAMERA PIN TEST ========\n")
     last_pos = -1                    # Last encoder position initialization
     test_passed = True
     errors = 0
@@ -162,6 +140,7 @@ def check_camera(device):
         last_pos = pos_encoder
                 
         active_dio = []
+        #activations = []
         device.digitalIO.status()
         device.digitalIO.inputInfo()
         input_status = device.digitalIO.inputStatus()
@@ -170,7 +149,8 @@ def check_camera(device):
 
         # Trova le posizioni dei bit a 1
         active_dio = [i for i, bit in enumerate(binary_input_status) if bit == '1' and i in [9, 10, 13, 14]]
-        #print(f"Active DIO pins: {active_dio} at encoder position {pos_encoder}")
+        #activations.append(f"Active DIO pins: {active_dio} at encoder position {pos_encoder}")
+        print(f"[REPORT]Active DIO pins: {active_dio} at encoder position {pos_encoder}")
         expected_pin = get_expected_pins(pos_encoder, active_dio, tolerance=1)
 
         expected_dio = []
@@ -186,27 +166,21 @@ def check_camera(device):
             error_details.append(f"At position {pos_encoder}): Expected DIO {expected_dio}, but got DIO {active_dio}")
         elif set(active_dio) == set(expected_dio) and len(active_dio) != 0 and len(expected_dio) != 0:
             working_details.append(f"At position {pos_encoder}): Expected DIO {expected_dio}, but got DIO {active_dio}")
-
-        '''sleep_time = target_time - time.time()
-        if sleep_time > 0:
-            time.sleep(sleep_time)
-        #else:
-            #print(f"Warning: Processing is lagging behind by {-sleep_time:.3f} seconds") 
-        pos += 1'''
     
     if test_passed:
-        print("Camera Device Test Result: PASSED!\nAll IO pins are working correctly.\n")
-        return None, 0
+        print("[BOTH]\033[1m\033[92m[OK]\033[0m Camera Device Test \033[1m\033[92mPASSED\033[0m!\n")
+        print("[BOTH]All IO pins are working correctly.\n")
+        print("[BOTH]======== END OF THE CAMERA PIN TEST ========\n")
+        return None, 0, working_details
     else:
-        print(f"Camera Device Test Result: FAILED!\nNumber of errors: {errors}\n{error_details}\n\n{working_details}\n")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Camera Device Test \033[1m\033[91mFAILED\033[0m!\n")
+        print(f"[BOTH]Number of errors: {errors}\n")
+        print(f"[REPORT]Error details: {error_details}")
+        print(f"[REPORT]Working details: {working_details}")
+        print("[BOTH]======== END OF THE CAMERA PIN TEST ========\n[BOTH]\n")
         return error_details, errors, working_details
 
 # === Get expected galvo angle from LUT based on encoder position === 
-'''def get_expected_angle(pos_encoder):
-    for entry in galvo_lut:
-        if entry["enc"] == pos_encoder:
-            return entry["galvo"]
-    return None'''
 def get_active_interval(pos_encoder):
     for entry in galvo_lut:
         if entry["enc"][0] <= pos_encoder <= entry["enc"][1]:
@@ -215,7 +189,7 @@ def get_active_interval(pos_encoder):
 
 # === Check Galvo device ===
 def check_galvo(device):
-
+    print("[BOTH]======== START OF THE GALVO TEST ========\n")
     digital_in = device.digitalIn
     digital_in.reset()
     digital_in.sampleFormatSet(16)
@@ -234,6 +208,10 @@ def check_galvo(device):
     working_details_G = []
     validated_intervals = set()
     test_duration = 60
+
+    while encoder_pos.get_position() != 0:
+        time.sleep(0.005)
+
     start_time = time.time()
 
     while time.time() - start_time < test_duration:  # Stabilization time
@@ -251,7 +229,7 @@ def check_galvo(device):
             timeout = time.time() + 1.5
             while time.time() < timeout:
                 current_pos = encoder_pos.get_position()
-                if current_pos > interval_end:
+                if current_pos > interval_end - 5:
                     break
                 sts = digital_in.status(True)
                 if sts == DwfState.Done:
@@ -284,18 +262,25 @@ def check_galvo(device):
                 errors += 1
                 if wrong_value:
                     error_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
-                    #print(f"At position {pos_encoder} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
+                    print(f"[REPORT]At position {pos_encoder} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
                 else:
                     error_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
-                    #print(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
+                    print(f"[REPORT]At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
         time.sleep(0.005)
             
     if test_passed:
-        print("Galvo Device Test Result: PASSED!\nAll expected angles were received correctly.")
-        return None, 0, working_details_G
+        print("[BOTH]\033[1m\033[92m[OK]\033[0m Galvo Device Test: \033[1m\033[92mPASSED\033[0m!\n")
+        print("[BOTH]All angles are working correctly.\n")
+        print(f"[REPORT]Working details: {working_details_G}")
+        print("[BOTH]======== END OF THE GALVO TEST ========\n\n")
+        #return None, 0, working_details_G
     else:
-        print(f"Galvo Device Test Result: FAILED!\nNumber of errors: {errors}\n")
-        return error_details_G, errors, working_details_G
+        print("[BOTH]\033[1m\033[91mERROR\033[0m: Galvo Device Test \033[1m\033[91mFAILED\033[0m!\n")
+        print(f"[BOTH]Number of errors: {errors}\n")
+        print(f"[REPORT]Error details: {error_details_G}")
+        print(f"[REPORT]Working details: {working_details_G}")
+        print("[BOTH]======== END OF THE GALVO TEST ========\n\n")
+        #return error_details_G, errors, working_details_G
 
 
 

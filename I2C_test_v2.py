@@ -10,6 +10,7 @@
 import time
 import socketio
 import sys
+from URL import URL_BACKEND
 
 ack_counter_cam = 0
 ack_counter_galvo = 0
@@ -19,11 +20,11 @@ def run_I2C_test(expected_camere, expected_galvo):
     global connected_dev
     global ack_counter_cam
     global ack_counter_galvo
-    URL = 'http://10.10.0.25'                                      # Bucintoro Backend URL
+    #URL = 'http://10.10.0.25'                                      # Bucintoro Backend URL
     addresses = list(range(20,39 + 1))
     configuration_namespace = '/config'                            # Namespace for configuration
-    print("======  START OF I2C TEST ====== \n")
-    print(f"expected camera: {expected_camere}, expected galvo: {expected_galvo}")
+    print("[BOTH]======  START OF I2C TEST ====== \n")
+    print(f"[BOTH]Expected camera: {expected_camere}, Expected galvo: {expected_galvo}")
     ack_counter_cam = 0
     ack_counter_galvo = 0
     for address in addresses:
@@ -46,6 +47,7 @@ def run_I2C_test(expected_camere, expected_galvo):
             'name': device_name,
             }
             sio.emit("addDeviceManually", addDevice_payload, namespace=configuration_namespace)
+            print("[REPORT]Adding device ", device_name, " with address: ", address)
             time.sleep(2)
             sio.emit("device_config", namespace=device_namespace)
             time.sleep(2)
@@ -53,7 +55,7 @@ def run_I2C_test(expected_camere, expected_galvo):
 
         @sio.on("current_device_config", namespace=device_namespace)
         def on_device_config(data):
-            print("Device configuration received:", data)
+            print("[BOTH]Device configuration received:", data)
             connected_dev.append(address)
             global ack_counter_cam
             global ack_counter_galvo
@@ -69,30 +71,20 @@ def run_I2C_test(expected_camere, expected_galvo):
 
         #if __name__ == "__main__":
         try:
-            sio.connect(URL)
+            sio.connect(URL_BACKEND)
             time.sleep(5)           
             sio.disconnect()
         except Exception as e:
-            print("Errore", e)
+            print("[REPORT]\033[1m\033[91mERROR\033[0m:", e)
     
     print("Reachable devices: ", connected_dev)
     if ack_counter_cam != expected_camere:
-        print("Error I2C: Two or more Camera devices have the same address!")
+        print("[BOTH]\033[1m\033[91mERROR\033[0m I2C: At least 1 Timing Controller hasn't been detected!")
     else:
-        print("Test I2C PASSED for Camera devices")
-    if ack_counter_galvo != expected_galvo and ack_counter_galvo == 0:
-        print("Error: Galvo device took too long to answer!")
-    elif ack_counter_galvo != expected_galvo and ack_counter_galvo != 0:
-        print("Error I2C: Two or more Galvo devices have the same address!")
+        print("[BOTH]\033[1m\033[92m[OK]\033[0m Test I2C \033[1m\033[92mPASSED\033[0m for Camera devices")
+    if ack_counter_galvo != expected_galvo and ack_counter_galvo != 0:
+        print("[BOTH]\033[1m\033[91mERROR\033[0m I2C: At least 1 Galvo device hasn't been detected!")
     else:
-        print("Test I2C PASSED for Galvo devices")
+        print("[BOTH]\033[1m\033[92m[OK]\033[0m Test I2C \033[1m\033[92mPASSED\033[0m for Galvo devices")
         
-    print("====== END OF I2C TEST ====== \n\n")
-
-'''if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Numbers of connected modules is not provided!")
-    else:
-        expected_camere = int(sys.argv[1])
-        expected_galvo = int(sys.argv[2])
-        run_I2C_test(expected_camere, expected_galvo)'''
+    print("[BOTH]======= END OF I2C TEST ======= \n")

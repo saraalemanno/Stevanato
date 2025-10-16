@@ -15,8 +15,10 @@ import time
 import socketio
 from pydwf import DwfLibrary, DwfTriggerSource, DwfState, DwfTriggerSlope
 import numpy as np
+from URL import URL_BACKEND
 
-URL_BACKEND = 'http://10.10.0.25'                                                           # Bucintoro backend URL
+#URL_BACKEND = 'http://10.10.0.25'                                                           # Bucintoro backend URL
+
 sio = socketio.Client() 
 angle_pos = []
 angle_ack = []

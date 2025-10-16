@@ -9,6 +9,7 @@
 
 import time
 import socketio
+from URL import URL_BACKEND
 
 ack_counter = 0
 connected_dev = []
@@ -16,7 +17,7 @@ connected_dev = []
 def run_I2C_test():
     global connected_dev
     global ack_counter
-    URL = 'http://10.10.0.25'                                      # Bucintoro Backend URL
+    #URL = 'http://10.10.0.25'                                      # Bucintoro Backend URL
     addresses = list(range(20,39 + 1))
     configuration_namespace = '/config'                            # Namespace for configuration
     print("START OF I2C TEST\n")
@@ -56,7 +57,7 @@ def run_I2C_test():
 
         #if __name__ == "__main__":
         try:
-            sio.connect(URL)
+            sio.connect(URL_BACKEND)
             time.sleep(3)
             if ack_counter != 0:
                 if ack_counter > 1:

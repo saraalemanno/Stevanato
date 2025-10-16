@@ -12,9 +12,10 @@ import socketio
 import requests
 from pydwf import DwfLibrary, DwfAnalogOutNode, DwfAnalogOutFunction, DwfAnalogIO
 from pydwf.utilities import openDwfDevice
+from URL import URL_API
 
 dwf = DwfLibrary()
-URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
+#URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
 
 # Select the first available device
 devices = dwf.deviceEnum.enumerateDevices()

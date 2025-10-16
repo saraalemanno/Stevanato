@@ -14,9 +14,10 @@ import socketio
 from encoder_simulation import start_encoder_simulation, check_encoder_phases
 import encoder_simulation
 import threading
+from URL import URL_API
 
 dwf = DwfLibrary()
-URL_API = 'http://10.10.0.25/api/v2/main_status'                   # API URL for REST requests
+#URL_API = 'http://10.10.0.25/api/v2/main_status'                   # API URL for REST requests
 
 # Select the first available device
 devices = dwf.deviceEnum.enumerateDevices()
@@ -34,7 +35,7 @@ def set_isRunning_pin(device, state: bool):
     device.digitalIO.configure()
 
 if __name__ == "__main__":
-    print("Starting encoder simulation and setting ready2Go pin...\n")
+    print("[REPORT]Starting encoder simulation and setting ready2Go pin...\n")
 
     encoder_thread = threading.Thread(target=start_encoder_simulation, args=(device,))
     encoder_thread.daemon = True  # Thread ends when main program ends
@@ -44,10 +45,10 @@ if __name__ == "__main__":
     # Check encoder phase: Test result
     err_phase, errors = check_encoder_phases(URL_API)
     if err_phase is not None and errors != 0:
-        print(f"Encoder phases Test Result: FAILED!\n{err_phase}")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Encoder phases Test Result: FAILED!\n{err_phase}")
     else:
-        print("Encoder phases Test Result: PASSED!\nAll phases are working correctly.\n")
-        print("Starting the run condition...")
+        print("[BOTH]\033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\nAll phases are working correctly.\n")
+        print("[REPORT]Starting the run condition...")
         
         set_isRunning_pin(device, True)                            # Set pin isRunning to 1
         time.sleep(60)

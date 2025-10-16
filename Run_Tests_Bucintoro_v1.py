@@ -7,7 +7,8 @@
 
 from add_noise_v2 import start_noise
 import add_noise_v2
-from encoder_simulation import start_encoder_simulation, check_encoder_phases
+import encoder_simulation_v1
+from encoder_simulation_v1 import start_encoder_simulation, check_encoder_phases
 import encoder_simulation
 from I2C_test_v2 import run_I2C_test
 from gpio_autoloop_test_v7 import run_gpio_test
@@ -18,8 +19,11 @@ from pydwf import DwfLibrary, DwfAnalogOutNode, DwfAnalogOutFunction, DwfAnalogI
 from pydwf.utilities import openDwfDevice
 import sys
 import threading
+import check_temperature
+from URL import URL_API
 
-URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
+#URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
+stop_event = threading.Event()
 dwf = DwfLibrary()
 # Select the first available device
 devices = dwf.deviceEnum.enumerateDevices()
@@ -30,9 +34,13 @@ else:
     device = openDwfDevice(dwf)
 
 if __name__ == "__main__":
+    print("[BOTH]======== START OF THE SINGLE TESTS ========\n")
+    Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
+    Tmonitor_thread.daemon = True                                # Thread ends when main program ends
+    Tmonitor_thread.start()
     # Beginning of the test: add noise + start encoder simulation
     if isDevicePresent:
-        print("Starting noise and encoder simulation...\n")
+        print("[BOTH]Starting noise and encoder simulation...\n")
 
         encoder_thread = threading.Thread(target=start_encoder_simulation, args=(device,))
         encoder_thread.daemon = True  # Thread ends when main program ends
@@ -40,16 +48,36 @@ if __name__ == "__main__":
         noise_thread = threading.Thread(target=start_noise, args=(device,))
         noise_thread.daemon = True  # Thread ends when main program ends
         noise_thread.start()
-        #start_noise(device)
-        #start_encoder_simulation(device)
         time.sleep(2)
 
         # Check encoder phase: Test result
         err_phase, errors = check_encoder_phases(URL_API)
         if err_phase is not None and errors != 0:
-            print(f"Encoder phases Test Result: FAILED!\n{err_phase}")
+            print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test FAILED!")
+            print(f"[BOTH]{err_phase}\n")
+            print("[BOTH]Exiting...")
+            # Stopping noise and encoder simulation
+            encoder_simulation_v1.encoder_running = False
+            add_noise_v2.noise_running = False
+            encoder_thread.join()
+            noise_thread.join()
+            stop_event.set()
+            Tmonitor_thread.join()
+            device.close()
+            sys.exit()
+        elif stop_event.is_set():
+            print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
+            # Stopping noise and encoder simulation
+            encoder_simulation_v1.encoder_running = False
+            add_noise_v2.noise_running = False
+            encoder_thread.join()
+            noise_thread.join()
+            Tmonitor_thread.join()
+            device.close()
+            sys.exit()
         else:
-            print("Encoder phases Test Result: PASSED!\nAll phases are working correctly.\n")
+            print("[BOTH] \033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\n")
+            print("[BOTH]All phases are working correctly.\n")
 
     # Add Main Device
     script_addMainDevice = 'add_MainDevice.py'
@@ -57,7 +85,7 @@ if __name__ == "__main__":
 
     # Run the I2C test, GPIO test, Galvo test
     if len(sys.argv) < 3:
-        print("Numbers of connected modules is not provided!")
+        print("\033[1m\033[91mERROR\033[0m: Numbers of connected modules is not provided!")
         sys.exit()
     else:
         Nmodule_camere = int(sys.argv[1])
