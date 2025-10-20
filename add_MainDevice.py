@@ -45,7 +45,7 @@ stamp = 0
 def on_manual_control_status(data):
     global stamp
     if stamp == 0:
-        print(f"[BOTH]Added device: {device_name}")
+        print(f"[REPORT]Added device: {device_name}")
         stamp += 1
 
 if __name__ == '__main__':

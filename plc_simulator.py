@@ -9,8 +9,11 @@ import requests
 import URL
 from URL import URL_BACKEND, URL_API, get_main_status
 
+errors = 0
+
 # Function to send the start request to the backend
 def send_start_request():
+    global errors
     try:
         response = requests.get(f"{URL_BACKEND}:5000/api/v2/change_mode/start")
         if response.status_code == 200:
@@ -18,13 +21,16 @@ def send_start_request():
             return response #.json()
         else:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Failed to send start command. Status code: {response.status_code}")
-            return None
+            errors += 1
+            return errors
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Exception occurred while sending start command: {e}")
-        return None
+        errors += 1
+        return errors
 
 # Function to send the homing request to the backend
 def send_homing_request():
+    global errors
     try:
         response = requests.get(f"{URL_BACKEND}:5000/api/v2/homing_request")
         if response.status_code == 200:
@@ -33,13 +39,16 @@ def send_homing_request():
             return response.json()
         else:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Failed to send homing command. Status code: {response.status_code}")
-            return None
+            errors += 1
+            return errors
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Exception occurred while sending homing command: {e}")
-        return None
+        errors += 1
+        return errors
     
 # Function to send the protocol to the backend
 def send_protocol_version():
+    global errors
     try:
         payload = {"protocol": 1}
         response = requests.post(f"{URL_BACKEND}:5000/api/v2/main_status/protocol", json=payload)
@@ -49,13 +58,16 @@ def send_protocol_version():
             return response.json()
         else:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Failed to send protocol version. Status code: {response.status_code}")
-            return None
+            errors += 1
+            return errors
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Exception occurred while sending protocol version: {e}")
-        return None
+        errors += 1
+        return errors
     
 # Function to send the stop request to the backend
 def send_stop_request():
+    global errors
     try:
         response = requests.get(f"{URL_BACKEND}:5000/api/v2/change_mode/stop")
         if response.status_code == 200:
@@ -63,25 +75,31 @@ def send_stop_request():
             return response.json()
         else:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Failed to send stop command. Status code: {response.status_code}")
-            return None
+            errors += 1
+            return errors
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Exception occurred while sending stop command: {e}")
-        return None
+        errors += 1
+        return errors
 
-def main():
+def go2Run():
+    global errors
     print("[REPORT][PLC] Sending start command to backend...")
     status = get_main_status(URL_API)
     if not status:
-        return
+        errors += 1
+        return errors
     if status.get("encoder_error") or status.get("config_error") or status.get("config_running") or status.get("ready_to_go"):
         print("[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Cannot start test. Please check for errors or if configuration is still running.")
-        return
+        errors += 1
+        return errors
     
     print("[REPORT][PLC] Condition satisfied. Proceeding to send homing request...")
     homing_response = send_homing_request()
     if not homing_response or homing_response.get("status") != "OK":
         print("[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Homing command failed.")
-        return
+        errors += 1
+        return errors
     print("sending the protocol version...")
     send_protocol_version()
     time.sleep(1)
@@ -90,7 +108,8 @@ def main():
     #if not start_response or start_response.get("status") != "OK":
     if start_response.status_code!=200:
         print("[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Start command failed.")
-        return
+        errors += 1
+        return errors
     print("[REPORT][PLC] Start command acknowledged by backend. Waiting for devices to enter Run mode...")
     
     for _ in range(10):  # max 10 secondi
@@ -102,7 +121,8 @@ def main():
             break
     else:
         print("[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] StartRequestProcessing non è mai diventato True.")
-        return
+        errors += 1
+        return errors
 
     for _ in range(30):
         time.sleep(1)
@@ -113,12 +133,12 @@ def main():
             break
     if status.get("ready_to_go"):
         print("[BOTH][PLC]\033[1m\033[92m[OK]\033[0m: All devices are in Run mode (ready2Go = true).")
+        return errors
     else:
         print("[BOTH]\033[1m\033[91mERROR\033[0m: [PLC] Devices failed to enter Run mode within the expected time.")
+        errors += 1
+        return errors
 
-    time.sleep(2)
-    stop_response = send_stop_request()
-
-if __name__ == "__main__":
-    main()
+'''if __name__ == "__main__":
+    main()'''
 

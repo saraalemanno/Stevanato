@@ -8,34 +8,42 @@ current_pin = None
 end_test = False
 
 def gpio_autoloop_test(active_inputs, active_outputs):
+    global errors_gpio
     if not active_outputs:
         return
     elif not active_inputs:
-        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity test \033[1m\033[91mFAILED\033[0m: No active input for output: {active_outputs}!")
+        errors_gpio += 1
+        print(f"[REPORT] Continuity test FAILED: No active input for output: {active_outputs}!")
         return 
     
-    expected_inputs = set()
+    expected_inputs = set(out_pin % 12 for out_pin in active_outputs)
+    '''expected_inputs = set()
     for out_pin in active_outputs:
         mapped_input = out_pin % 12                                      # Mapping outputs to inputs 
         expected_inputs.add(mapped_input)
         #print(f"Expected input for output {out_pin}: {mapped_input}")
-        #print(f"Active inputs: {active_inputs}")
+        #print(f"Active inputs: {active_inputs}")'''
 
     if not expected_inputs.intersection(active_inputs):
-        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity test \033[1m\033[91mFAILED\033[0m for output {active_outputs}: No active input corresponding to the active output!\n")
+        errors_gpio += 1
+        print(f"[REPORT] Continuity test FAILED for output {active_outputs}: No active input corresponding to the active output!\n")
         return
     elif len(active_inputs) > len(expected_inputs):
-        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity test \033[1m\033[92mPASSED\033[0m fro output: {active_outputs}. Shortcircuit test \033[1m\033[91mFAILED\033[0m: More than one active input for the same output. Active inputs: {active_inputs}!\n")
+        errors_gpio += 1
+        print(f"[REPORT] Continuity test PASSED fro output: {active_outputs}. Shortcircuit test FAILED: More than one active input for the same output. Active inputs: {active_inputs}!\n")
         return
     elif set(active_inputs) != expected_inputs:
-        print(f"[BOTH]\033[1m\033[91mERROR\033[0m Continuity and Shortcircuit tests \033[1m\033[92mPASSED\033[0m for output {active_outputs}. Correspondence test \033[1m\033[91mFAILED\033[0m: Active inputs do not correspond to the active outputs!")
+        errors_gpio += 1
+        print(f"[REPORT] Continuity and Shortcircuit tests PASSED for output {active_outputs}. Correspondence test FAILED: Active inputs do not correspond to the active outputs!")
         return
     else:
-        print(f"[BOTH]\033[1m\033[92m[OK]\033[0m ALL tests \033[1m\033[92mPASSED\033[0m for Output: {active_outputs}\n")
+        print(f"[REPORT][OK] ALL tests PASSED for Output: {active_outputs}\n")
 
 def run_gpio_test(address):
     # Define the required variables
     #URL_BACKEND = 'http://10.10.0.25'                       # Bucintoro Backend URL
+    global errors_gpio
+    errors_gpio = 0
     global URL_BACKEND
     sio = socketio.Client()
     gpio = 0                                                # GPIO number, keep it as 0
@@ -100,6 +108,10 @@ def run_gpio_test(address):
             time.sleep(4)
         if end_test:
             sio.disconnect()
+            if errors_gpio == 0:
+                print(f"[BOTH]\033[1m\033[92m[OK]\033[0m GPIO Test Result: \033[1m\033[92mPASSED\033[0m for CAMERA{address}\n")
+            else:
+                print(f"[BOTH]\033[1m\033[91m[ERROR]\033[0m GPIO Test Result: \033[1m\033[91mFAILED\033[0m for CAMERA{address} with {errors_gpio} errors\n")
             print(f"[BOTH]====== END GPIO TEST FOR CAMERA{address} ======")
 
     # Acknowledgment for mode change

@@ -7,8 +7,8 @@
 
 from add_noise_v2 import start_noise
 import add_noise_v2
-import encoder_simulation_v1
-from encoder_simulation_v1 import start_encoder_simulation, check_encoder_phases
+import encoder_simulation_v2
+from encoder_simulation_v2 import start_encoder_simulation, check_encoder_phases
 import encoder_simulation
 from I2C_test_v2 import run_I2C_test
 from gpio_autoloop_test_v7 import run_gpio_test
@@ -57,7 +57,7 @@ if __name__ == "__main__":
             print(f"[BOTH]{err_phase}\n")
             print("[BOTH]Exiting...")
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
             encoder_thread.join()
             noise_thread.join()
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         elif stop_event.is_set():
             print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
             encoder_thread.join()
             noise_thread.join()
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # Run the I2C test, GPIO test, Galvo test
     if len(sys.argv) < 3:
-        print("\033[1m\033[91mERROR\033[0m: Numbers of connected modules is not provided!")
+        print("[BOTH]\033[1m\033[91mERROR\033[0m: Numbers of connected modules is not provided!")
         sys.exit()
     else:
         Nmodule_camere = int(sys.argv[1])
@@ -101,17 +101,18 @@ if __name__ == "__main__":
         addresses_G = galvo_addresses[:Nmodule_galvo]
         if isDevicePresent:
             for address_G in addresses_G:
-                print("\n")
+                print("[BOTH]\n")
                 run_galvo_test(address_G, device)
                 time.sleep(20)
-
     if isDevicePresent:
         # Stopping Noise and Encoder simulation
         #stop_noise(device)
-        encoder_simulation.encoder_running = False
+        encoder_simulation_v2.encoder_running = False
         encoder_thread.join()
         add_noise_v2.noise_running = False
         noise_thread.join()
         device.close()
-        time.sleep(2)
+        #time.sleep(2)
+
+    print("[BOTH]======== END OF THE AUTOLOOP TEST ========")
 

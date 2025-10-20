@@ -16,20 +16,21 @@ import socketio
 from pydwf import DwfLibrary, DwfTriggerSource, DwfState, DwfTriggerSlope
 import numpy as np
 from URL import URL_BACKEND
+from threading import Event
 
-#URL_BACKEND = 'http://10.10.0.25'                                                           # Bucintoro backend URL
 
-sio = socketio.Client() 
-angle_pos = []
-angle_ack = []
-angle_req = []
-dwf = DwfLibrary()
-configuration_namespace = "/config"
+dwf = DwfLibrary()                                                        # Bucintoro backend URL
 galvo_started = False
+end_test = Event()
 
 def run_galvo_test(address_G, device):
+    end_test.clear() 
     angle_req = 32767
     global galvo_started
+    global URL_BACKEND
+    sio = socketio.Client() 
+    #angle_req = []
+    configuration_namespace = "/config"
 
     device_namespace = f"/device{address_G}"
     device_name = f'Galvo{address_G}'
@@ -53,16 +54,16 @@ def run_galvo_test(address_G, device):
     @sio.on("changed_mode", namespace=device_namespace)
     def on_changed_mode(data):
         if data.get("status") == "OK":
-            print(f"Mode changed successfully for device with address:", address_G)
+            print(f"[REPORT]Mode changed successfully for device with address:", address_G)
         else:
-            print(f"Failed to change mode for device with address:", address_G)
+            print(f"[REPORT]Failed to change mode for device with address:", address_G)
 
     @sio.on("manual_command_ack", namespace=device_namespace)
     def on_manual_command_ack(data):
         if data['status'] == "OK":
                 time.sleep(0.001)
         else:
-            print("Manual command KO!")
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: Manual command KO!")
 
     @sio.on("manual_control_status", namespace=device_namespace)
     def on_manual_control_status(data):
@@ -70,8 +71,14 @@ def run_galvo_test(address_G, device):
         if not galvo_started:
             galvo_started = True
             galvo_loop_test()
+            # wait for the end_test flag
+            end_test.wait()
         else:
             time.sleep(0.001)
+
+        if end_test.is_set():
+            sio.disconnect()
+            print(f"[BOTH]====== END GALVO TEST FOR GALVO{address_G} ======")
 
     def galvo_loop_test():
         digital_in = device.digitalIn
@@ -93,7 +100,7 @@ def run_galvo_test(address_G, device):
             'new_mode': 'man'
         }
         sio.emit('change_mode', change_mode_payload['new_mode'], namespace=device_namespace)
-        print(f"Changing mode to manual for device with address: {device_namespace}...")
+        print(f"[REPORT]Changing mode to manual for device with address: {device_namespace}...")
         time.sleep(1)
         data = {
             "id": 0,
@@ -106,7 +113,8 @@ def run_galvo_test(address_G, device):
             if sts == DwfState.Done:
                 break
             if time.time() - start > 10:
-                print("Time out! Didn't receive any trigger\nTEST FAILED")
+                print("[BOTH]\033[1m\033[91mERROR\033[0m: Time out! Didn't receive any trigger")
+                print("[BOTH]\033[1m\033[91mERROR\033[0m: TEST FAILED!")
                 break
             time.sleep(0.01)
         count = digital_in.statusSamplesValid()
@@ -134,20 +142,25 @@ def run_galvo_test(address_G, device):
             value = 0
             for bit in bits:
                 value = (value << 1) | bit
-                time.sleep(0.2)
-            print(f"Decoded SPI value: {value}\n")
+                time.sleep(0.05)
+            print(f"[REPORT]Decoded SPI value: {value}\n")
             if value != 0:
                 value = int(value)
                 degrees = ((value - 32767) / 32767) * 16
-                print(f"Angle in degrees: {degrees}")
+                print(f"[REPORT]Angle in degrees: {degrees}")
                 if value == angle_req:
-                    print("GALVO TEST PASSED: All pins are working correctly!")
+                    print("[BOTH] \033[1m\033[92m[OK]\033[0m GALVO Test Result: \033[1m\033[92mPASSED\033[0m: All pins are working correctly!")
+                    end_test.set()
                 else:
-                    print("GALVO TEST FAILED: The value received is different from the one requested!")
+                    print("[BOTH]\033[1m\033[91mERROR\033[0m: GALVO Test Result: \033[1m\033[91mFAILED\033[0m. The value received is different from the one requested!")
+                    end_test.set()
             else:
                 print("Value = 0")
+                end_test.set()
         else:
-            print("Incomplete: Not enough bits received!\nTEST FAILED!")
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: Incomplete: Not enough bits received!")
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: Galvo Test Result: \033[1m\033[91mFAILED\033[0m!")
+            end_test.set()
 
         @sio.event(namespace=device_namespace)
         def disconnect():
@@ -157,14 +170,12 @@ def run_galvo_test(address_G, device):
         def disconnect():
             time.sleep(0.001)
 
-
-
     try:
-        print(f"====== RUN GALVO TEST FOR GALVO{address_G} ======")
+        print(f"[BOTH]====== RUN GALVO TEST FOR GALVO{address_G} ======")
         sio.connect(URL_BACKEND)
         time.sleep(15)
     except Exception as e:
-        print(f"Connection error: {e}")
-    finally:
-        sio.disconnect()
-        print(f"====== END GALVO TEST FOR GALVO{address_G} ======")
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Connection error: {e}")
+    #finally:
+        #sio.disconnect()
+        

@@ -197,7 +197,7 @@ def check_galvo(device):
     digital_in.bufferSizeSet(65536)
     digital_in.dividerSet(1)
     digital_in.triggerSourceSet(DwfTriggerSource.DetectorDigitalIn)
-    digital_in.triggerPositionSet(1800) #533
+    digital_in.triggerPositionSet(1800) #1800
     digital_in.triggerSlopeSet(DwfTriggerSlope.Fall)
     digital_in.triggerSet(1 >> 12, 0, 0, 1 << 12)
 
@@ -211,7 +211,7 @@ def check_galvo(device):
 
     while encoder_pos.get_position() != 0:
         time.sleep(0.005)
-
+    time.sleep(2)
     start_time = time.time()
 
     while time.time() - start_time < test_duration:  # Stabilization time

@@ -2,6 +2,7 @@ import requests
 
 URL_BACKEND = 'http://10.10.0.25'                           # Bucintoro Backend URL
 URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
+IP_PLC = '10.10.0.20'
 
 #NOVO NORDISK
 #URL_API = 'http://172.30.135.41/api/v2/main_status'

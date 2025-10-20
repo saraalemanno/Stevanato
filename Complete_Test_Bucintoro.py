@@ -13,20 +13,22 @@
 import time
 from add_noise_v2 import start_noise
 import add_noise_v2
-import encoder_simulation_v1
-from encoder_simulation_v1 import start_encoder_simulation, check_encoder_phases
+import encoder_simulation_v2
+from encoder_simulation_v2 import start_encoder_simulation, check_encoder_phases
 import subprocess
 from pydwf import DwfLibrary
 from pydwf.utilities import openDwfDevice
 import sys
 import threading
-import send_config_camera, send_config_galvo, send_config_pulse
+import send_config_camera, send_config_galvo, send_config_pulse, send_config_PLC
 from send_config_camera import send_configuration_camera
 from send_config_galvo import send_configuration_galvo
 from send_config_pulse import send_configuration_pulse
+from send_config_PLC import send_configuration_PLC
 import check_LUT
 from check_LUT import check_camera, check_galvo
 import check_temperature
+from plc_simulator import go2Run, send_stop_request
 from URL import URL_API
 
 sys.stdout.reconfigure(encoding='utf-8')  # To print special characters
@@ -65,11 +67,11 @@ if __name__ == "__main__":
         # Check encoder phase: Test result
         err_phase, errors = check_encoder_phases(URL_API)
         if err_phase is not None and errors != 0:
-            print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test FAILED!")
+            print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test Result: \033[1m\033[91mFAILED\033[0m!")
             print(f"[BOTH]{err_phase}\n")
             print("[BOTH]Exiting...")
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
             encoder_thread.join()
             noise_thread.join()
@@ -80,7 +82,7 @@ if __name__ == "__main__":
         elif stop_event.is_set():
             print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
             encoder_thread.join()
             noise_thread.join()
@@ -109,7 +111,7 @@ if __name__ == "__main__":
             if not send_config_camera.isDeviceFound:
                 print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Device with address {address} not found! Exiting...")
                 # Stopping noise and encoder simulation
-                encoder_simulation_v1.encoder_running = False
+                encoder_simulation_v2.encoder_running = False
                 add_noise_v2.noise_running = False
                 encoder_thread.join()
                 noise_thread.join()
@@ -118,7 +120,7 @@ if __name__ == "__main__":
             elif stop_event.is_set():
                 print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
                 # Stopping noise and encoder simulation
-                encoder_simulation_v1.encoder_running = False
+                encoder_simulation_v2.encoder_running = False
                 add_noise_v2.noise_running = False
                 encoder_thread.join()
                 noise_thread.join()
@@ -134,7 +136,7 @@ if __name__ == "__main__":
             if not send_config_galvo.isGalvoFound:
                 print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Device with address {address_G} not found! Exiting...")
                 # Stopping noise and encoder simulation
-                encoder_simulation_v1.encoder_running = False
+                encoder_simulation_v2.encoder_running = False
                 add_noise_v2.noise_running = False
                 encoder_thread.join()
                 noise_thread.join()
@@ -143,7 +145,7 @@ if __name__ == "__main__":
             elif stop_event.is_set():
                 print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
                 # Stopping noise and encoder simulation
-                encoder_simulation_v1.encoder_running = False
+                encoder_simulation_v2.encoder_running = False
                 add_noise_v2.noise_running = False
                 encoder_thread.join()
                 noise_thread.join()
@@ -158,7 +160,7 @@ if __name__ == "__main__":
         if not send_config_pulse.isPulseFound:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Pulse device not found! Exiting...")
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
             encoder_thread.join()
             noise_thread.join()
@@ -167,20 +169,66 @@ if __name__ == "__main__":
         elif stop_event.is_set():
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
             encoder_thread.join()
             noise_thread.join()
             Tmonitor_thread.join()
             device.close()
             sys.exit()
-        encoder_simulation_v1.ready2go = True
+        
+        # Send PLC configuration
+        send_configuration_PLC()
+        time.sleep(5)
+        if not send_config_PLC.isPLCConfigured:
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: PLC configuration failed! Exiting...")
+            # Stopping noise and encoder simulation
+            encoder_simulation_v2.encoder_running = False
+            add_noise_v2.noise_running = False
+            encoder_thread.join()
+            noise_thread.join()
+            device.close()
+            sys.exit()
+        elif stop_event.is_set():
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
+            # Stopping noise and encoder simulation
+            encoder_simulation_v2.encoder_running = False
+            add_noise_v2.noise_running = False
+            encoder_thread.join()
+            noise_thread.join()
+            Tmonitor_thread.join()
+            device.close()
+            sys.exit()
+
+        print("[REPORT][PLC] Checking the conditions to go to RUN mode...")
+        errors = go2Run()                                                            # Send start command to backend
+        if errors != 0:
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: Cannot go to RUN mode! Exiting...")
+            # Stopping noise and encoder simulation
+            encoder_simulation_v2.encoder_running = False
+            add_noise_v2.noise_running = False
+            encoder_thread.join()
+            noise_thread.join()
+            device.close()
+            sys.exit()
+        elif stop_event.is_set():
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
+            # Stopping noise and encoder simulation
+            encoder_simulation_v2.encoder_running = False
+            add_noise_v2.noise_running = False
+            encoder_thread.join()
+            noise_thread.join()
+            Tmonitor_thread.join()
+            device.close()
+            sys.exit()
         time.sleep(6)
+        #for address in addresses_C: to add when another scope is added
         check_camera(device)
         time.sleep(15)
         stop_event.set()
         Tmonitor_thread.join()
-        time.sleep(2)
+        time.sleep(10)
+        #for address_G in addresses_G: to add when another scope is added
         check_galvo(device)
         time.sleep(15)
         #pause_event.clear()  # Resume temperature monitoring after camera test
@@ -188,17 +236,18 @@ if __name__ == "__main__":
         #Tmonitor_thread.daemon = True                                # Thread ends when main program ends
         Tmonitor_thread.start()
         time.sleep(10)
+        send_stop_request()                                                        # Send stop command to backend
+        time.sleep(2)
         if isDevicePresent:
             # Stopping noise and encoder simulation
-            encoder_simulation_v1.ready2go = False
             add_noise_v2.noise_running = False
-            encoder_simulation_v1.encoder_running = False
+            encoder_simulation_v2.encoder_running = False
             stop_event.set()
             Tmonitor_thread.join()
             encoder_thread.join()
             noise_thread.join()
             device.close()
 
-    print("[BOTH]======== END OF THE COMPLETE TEST ========")
+    print(f"[BOTH]======== END OF THE COMPLETE TEST ========")
         
 

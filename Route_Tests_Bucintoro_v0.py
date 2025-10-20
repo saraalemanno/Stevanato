@@ -71,9 +71,21 @@ def run_test_bucintoro():
             if not line and process.poll() is not None:
                 break
             if line:
-                socketio.emit('test_output', {'line': line.strip()})
-                socketio.sleep(0)
-                report_lines.append(line.strip())
+                cleaned_line = line.strip()
+                if cleaned_line.startswith("[REPORT]"):
+                    cleaned_line = cleaned_line.replace("[REPORT]", "")
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    report_lines.append(cleaned_line)
+                elif cleaned_line.startswith("[BOTH]"):
+                    cleaned_line = cleaned_line.replace("[BOTH]", "")
+                    display_line = ansi_to_html(cleaned_line)
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    report_lines.append(cleaned_line)
+                    print(display_line)
+                    socketio.emit('test_output', {'line': display_line})
+                    socketio.sleep(0)
+                else:
+                    print(cleaned_line)
 
     except Exception as e:
         full_output += f"Error during execution of the test: {str(e)}\n"
@@ -152,8 +164,6 @@ def run_complete_test_bucintoro():
                     socketio.sleep(0)
                 else:
                     print(cleaned_line)
-                
-
 
     except Exception as e:
         full_output += f"Error during execution of the test: {str(e)}\n"
