@@ -104,15 +104,15 @@ def check_encoder_phases(URL_API):
     errors = 0
     # Check that there are no errors in the phases
     if phaseA_err is True:
-        err_phase.append("[BOTH]\033[1m\033[91mERROR\033[0m Encoder Phase A: KO")
+        err_phase.append("[BOTH]Encoder Phase A: KO")
         errors += 1
 
     if phaseB_err is True:
-        err_phase.append("[BOTH]\033[1m\033[91mERROR\033[0m Encoder Phase B: KO.")
+        err_phase.append("[BOTH]Encoder Phase B: KO.")
         errors += 1
 
     if phaseZ_err is True:
-        err_phase.append("[BOTH]\033[1m\033[91mERROR\033[0m Encoder Phase Z: KO.")
+        err_phase.append("[BOTH]Encoder Phase Z: KO.")
         errors += 1
 
     if err_phase is []:

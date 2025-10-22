@@ -13,10 +13,11 @@ from URL import URL_API
 
 
 #URL_API = 'http://10.10.0.25'                       # Bucintoro Backend URL
-sio = socketio.Client()
+
 isGalvoFound = False
 
 def send_configuration_galvo(address):
+    sio = socketio.Client()
     global isGalvoFound
     path_config = "C:/Appoggio/Configurazioni"
     if 30 <= address <= 39:
