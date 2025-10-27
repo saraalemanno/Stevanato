@@ -41,13 +41,13 @@ def send_configuration_PLC():
             global isPLCConfigured
             print(response)
             if response.get("status") == "OK":
-                print("[REPORT]PLC configuration updated successfully.")
+                print("[LOG]PLC configuration updated successfully.")
                 isPLCConfigured = True
             else:
-                print("[REPORT]Failed to update PLC configuration.")
+                print("[LOG]Failed to update PLC configuration.")
 
         sio.emit("updateConfig", payload, namespace=configuration_namespace, callback=ack_callback)
-        print("[REPORT]Sent PLC configuration payload:", payload["PLC"])
+        print("[LOG]Sent PLC configuration payload:", payload["PLC"])
     
     @sio.event(namespace=configuration_namespace)
     def disconnect():

@@ -24,7 +24,7 @@ def connect():
         'name': device_name
     }
     sio.emit('addDeviceManually', addMainDevice, namespace=config_namespace)
-    print("[REPORT]Adding device ", device_name, " with address: ", device_address)
+    print("[LOG]Adding device ", device_name, " with address: ", device_address)
     #time.sleep(2)
 
 @sio.event(namespace=device_namespace)
@@ -45,7 +45,7 @@ stamp = 0
 def on_manual_control_status(data):
     global stamp
     if stamp == 0:
-        print(f"[REPORT]Added device: {device_name}")
+        print(f"[LOG]Added device: {device_name}")
         stamp += 1
 
 if __name__ == '__main__':

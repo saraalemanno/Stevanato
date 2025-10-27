@@ -13,7 +13,7 @@ def gpio_autoloop_test(active_inputs, active_outputs):
         return
     elif not active_inputs:
         errors_gpio += 1
-        print(f"[REPORT] Continuity test FAILED: No active input for output: {active_outputs}!")
+        print(f"[LOG] Continuity test FAILED: No active input for output: {active_outputs}!")
         return 
     
     expected_inputs = set(out_pin % 12 for out_pin in active_outputs)
@@ -26,18 +26,18 @@ def gpio_autoloop_test(active_inputs, active_outputs):
 
     if not expected_inputs.intersection(active_inputs):
         errors_gpio += 1
-        print(f"[REPORT] Continuity test FAILED for output {active_outputs}: No active input corresponding to the active output!\n")
+        print(f"[LOG] Continuity test FAILED for output {active_outputs}: No active input corresponding to the active output!\n")
         return
     elif len(active_inputs) > len(expected_inputs):
         errors_gpio += 1
-        print(f"[REPORT] Continuity test PASSED fro output: {active_outputs}. Shortcircuit test FAILED: More than one active input for the same output. Active inputs: {active_inputs}!\n")
+        print(f"[LOG] Continuity test PASSED fro output: {active_outputs}. Shortcircuit test FAILED: More than one active input for the same output. Active inputs: {active_inputs}!\n")
         return
     elif set(active_inputs) != expected_inputs:
         errors_gpio += 1
-        print(f"[REPORT] Continuity and Shortcircuit tests PASSED for output {active_outputs}. Correspondence test FAILED: Active inputs do not correspond to the active outputs!")
+        print(f"[LOG] Continuity and Shortcircuit tests PASSED for output {active_outputs}. Correspondence test FAILED: Active inputs do not correspond to the active outputs!")
         return
     else:
-        print(f"[REPORT][OK] ALL tests PASSED for Output: {active_outputs}\n")
+        print(f"[LOG][OK] ALL tests PASSED for Output: {active_outputs}\n")
 
 def run_gpio_test(address):
     # Define the required variables
@@ -82,7 +82,7 @@ def run_gpio_test(address):
             'name': device_name,
         }
         sio.emit("addDeviceManually", addDevice_payload, namespace=configuration_namespace)       
-        print("[REPORT]Adding device ", device_name, " with address: ", address)
+        print("[LOG]Adding device ", device_name, " with address: ", address)
         time.sleep(2)                                      
         # Changing working mode to manual
         change_mode_payload = {
@@ -91,7 +91,7 @@ def run_gpio_test(address):
             "new_mode": "man"
         }
         sio.emit("change_mode", change_mode_payload["new_mode"], namespace=device_namespace)
-        print("[REPORT]Changing mode to MANUAL...")
+        print("[LOG]Changing mode to MANUAL...")
         time.sleep(3)
 
         # Setting selected OUTPUTs to HIGH level one at a time
@@ -118,9 +118,9 @@ def run_gpio_test(address):
     @sio.on("changed_mode", namespace=device_namespace)
     def on_changed_mode(data):
         if data.get("status") == "OK":
-            print("[REPORT]Mode changed successfully for device with address", address)
+            print("[LOG]Mode changed successfully for device with address", address)
         else:
-            print("[REPORT]Failed to change mode:", data.get("info"))
+            print("[LOG]Failed to change mode:", data.get("info"))
 
     # Acknowledgment for manual command
     already_turned_off = False
@@ -140,7 +140,7 @@ def run_gpio_test(address):
             already_turned_off = True 
             current_pin = None                                               # Reset current pin after turning it off                                          
         elif data["status"] == "KO":
-            print("[REPORT]Manual command KO:", data["info"], "!!")
+            print("[LOG]Manual command KO:", data["info"], "!!")
 
         '''if end_test:
             sio.disconnect()

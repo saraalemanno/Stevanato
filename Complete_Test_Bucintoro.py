@@ -12,10 +12,8 @@
 
 import time
 from add_noise_v2 import start_noise
-import add_noise_v2
-import encoder_simulation_v2
+import add_noise_v2, encoder_simulation_v2, check_temperature
 from encoder_simulation_v2 import start_encoder_simulation, check_encoder_phases
-import subprocess
 from pydwf import DwfLibrary
 from pydwf.utilities import openDwfDevice
 import sys
@@ -25,18 +23,14 @@ from send_config_camera import send_configuration_camera
 from send_config_galvo import send_configuration_galvo
 from send_config_pulse import send_configuration_pulse
 from send_config_PLC import send_configuration_PLC
-import check_LUT
 from check_LUT import check_camera, check_galvo
-import check_temperature
 from plc_simulator import go2Run, send_stop_request
 from URL import URL_API
 
 sys.stdout.reconfigure(encoding='utf-8')  # To print special characters
-#URL_API = 'http://10.10.0.25/api/v2/main_status'                    # API URL for REST requests
 dwf = DwfLibrary()
 
 stop_event = threading.Event()
-#pause_event = threading.Event()
 # Select the first available device
 devices = dwf.deviceEnum.enumerateDevices()
 if not devices:
@@ -48,7 +42,7 @@ else:
 if __name__ == "__main__":
     print("[BOTH]======== START OF THE COMPLETE TEST ========\n")
     Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
-    Tmonitor_thread.daemon = True                                # Thread ends when main program ends
+    Tmonitor_thread.daemon = True                                   # Thread ends when main program ends
     Tmonitor_thread.start()
 
     if isDevicePresent:
@@ -200,7 +194,7 @@ if __name__ == "__main__":
             device.close()
             sys.exit()
 
-        print("[REPORT][PLC] Checking the conditions to go to RUN mode...")
+        print("[LOG][PLC] Checking the conditions to go to RUN mode...")
         errors = go2Run()                                                            # Send start command to backend
         if errors != 0:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Cannot go to RUN mode! Exiting...")
@@ -233,10 +227,10 @@ if __name__ == "__main__":
         time.sleep(15)
         #pause_event.clear()  # Resume temperature monitoring after camera test
         Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
-        #Tmonitor_thread.daemon = True                                # Thread ends when main program ends
+        #Tmonitor_thread.daemon = True                                         # Thread ends when main program ends
         Tmonitor_thread.start()
         time.sleep(10)
-        send_stop_request()                                                        # Send stop command to backend
+        send_stop_request()                                                    # Send stop command to backend
         time.sleep(2)
         if isDevicePresent:
             # Stopping noise and encoder simulation

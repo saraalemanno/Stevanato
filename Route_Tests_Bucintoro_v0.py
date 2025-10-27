@@ -28,6 +28,7 @@ stop_loop_test_flag = {'stop_auto_loop_test': False}
 def run_test_bucintoro():
     global test_in_progress
     global stop_loop_test_flag
+    global log_path, logContent, log_filename
     global report_path
     global reportContent
     global report_filename, main_serial, camera_serials, galvo_serials
@@ -48,10 +49,13 @@ def run_test_bucintoro():
     full_output = ""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_filename = f"Bucintoro_test_{timestamp}.txt"
+    log_filename = f"Bucintoro_log_{timestamp}.txt"
     desktop_path = os.path.join("C:\\Appoggio", "Bucintoro_reports")
     os.makedirs(desktop_path, exist_ok=True)
     report_path = os.path.join(desktop_path, report_filename)
     report_lines = []
+    log_path = os.path.join(desktop_path, log_filename)
+    log_lines = []
 
     try:
         
@@ -65,7 +69,7 @@ def run_test_bucintoro():
             if stop_loop_test_flag['stop_auto_loop_test']:
                 process.terminate()
                 full_output += "I2C test stopped by user.\n"
-                report_lines.append("I2C test stopped by user.")
+                log_lines.append("I2C test stopped by user.")
                 break
             line = process.stdout.readline()
             if not line and process.poll() is not None:
@@ -76,11 +80,15 @@ def run_test_bucintoro():
                     cleaned_line = cleaned_line.replace("[REPORT]", "")
                     cleaned_line = remove_ansi_codes(cleaned_line)
                     report_lines.append(cleaned_line)
+                elif cleaned_line.startswith("[LOG]"):
+                    cleaned_line = cleaned_line.replace("[LOG]", "")
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    log_lines.append(cleaned_line)
                 elif cleaned_line.startswith("[BOTH]"):
                     cleaned_line = cleaned_line.replace("[BOTH]", "")
                     display_line = ansi_to_html(cleaned_line)
                     cleaned_line = remove_ansi_codes(cleaned_line)
-                    report_lines.append(cleaned_line)
+                    log_lines.append(cleaned_line)
                     print(display_line)
                     socketio.emit('test_output', {'line': display_line})
                     socketio.sleep(0)
@@ -92,8 +100,9 @@ def run_test_bucintoro():
         print(full_output)
     finally:
         test_in_progress = False
+        logContent = "\n".join(log_lines)
         reportContent = "\n".join(report_lines)
-    return jsonify({'output': full_output, 'reportPath': report_path})
+    return jsonify({'output': full_output, 'reportPath': report_path, 'logPath': log_path})
 
 @app.route('/stop_test_loop_bucintoro', methods=['POST'])
 def stop_test_bucintoro():
@@ -106,9 +115,9 @@ stop_complete_test_flag = {'stop_complete_test': False}
 def run_complete_test_bucintoro():
     global test_in_progress
     global stop_complete_test_flag
-    global report_path
-    global reportContent
-    global report_filename, main_serial, camera_serials, galvo_serials
+    global report_path, log_path
+    global reportContent, logContent
+    global report_filename, log_filename, main_serial, camera_serials, galvo_serials
 
     if test_in_progress:
         return jsonify({'output': 'Complete Simulation Test already executing...'})
@@ -126,10 +135,13 @@ def run_complete_test_bucintoro():
     full_output = ""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_filename = f"Complete_Bucintoro_test_{timestamp}.txt"
+    log_filename = f"Complete_Bucintoro_log_{timestamp}.txt"
     desktop_path = os.path.join("C:\\Appoggio", "Bucintoro_reports")
     os.makedirs(desktop_path, exist_ok=True)
     report_path = os.path.join(desktop_path, report_filename)
+    log_path =  os.path.join(desktop_path, log_filename)
     report_lines = []
+    log_lines = []
 
     try:
         
@@ -143,7 +155,7 @@ def run_complete_test_bucintoro():
             if stop_complete_test_flag['stop_complete_test']:
                 process.terminate()
                 full_output += " \u26A0 Complete Simulation Test stopped by user.\n"
-                report_lines.append("Complete Simulation Test stopped by user.")
+                log_lines.append("Complete Simulation Test stopped by user.")
                 break
             line = process.stdout.readline()
             if not line and process.poll() is not None:
@@ -154,11 +166,15 @@ def run_complete_test_bucintoro():
                     cleaned_line = cleaned_line.replace("[REPORT]", "")
                     cleaned_line = remove_ansi_codes(cleaned_line)
                     report_lines.append(cleaned_line)
+                elif cleaned_line.startswith("[LOG]"):
+                    cleaned_line = cleaned_line.replace("[LOG]", "")
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    log_lines.append(cleaned_line)
                 elif cleaned_line.startswith("[BOTH]"):
                     cleaned_line = cleaned_line.replace("[BOTH]", "")
                     display_line = ansi_to_html(cleaned_line)
                     cleaned_line = remove_ansi_codes(cleaned_line)
-                    report_lines.append(cleaned_line)
+                    log_lines.append(cleaned_line)
                     print(display_line)
                     socketio.emit('test_output', {'line': display_line})
                     socketio.sleep(0)
@@ -171,7 +187,8 @@ def run_complete_test_bucintoro():
     finally:
         test_in_progress = False
         reportContent = "\n".join(report_lines)
-    return jsonify({'output': full_output, 'reportPath': report_path})
+        logContent = "\n".join(log_lines)
+    return jsonify({'output': full_output, 'reportPath': report_path, 'logPath': log_path})
 
 @app.route('/stop_complete_test_bucintoro', methods=['POST'])
 def stop_complete_test_bucintoro():
@@ -200,6 +217,28 @@ def download_report():
             report_file.write(reportContent)
         return send_file(report_path, as_attachment=True)
     return "Error: Report file not found.", 404
+
+# Route to download the log file
+@app.route('/download-log')
+def download_log():
+    global logContent, log_path
+    #path = request.args.get('path')
+    #with open(log_filename, "w") as log_file:
+    if log_path and logContent:
+        with open(log_path, 'w') as log_file:
+            log_file.write("===== Bucintoro Test Log =====\n")
+            log_file.write(f"Main Module Serial Number:  {main_serial}\n")    
+            log_file.write("\nCamera Modules Serial Numbers:\n")
+            for i, serial in enumerate(camera_serials, start=1):
+                log_file.write(f"- Camera {i}: {serial}\n")
+            log_file.write("\nGalvo Modules Serial Numbers:\n")
+            for i, serial in enumerate(galvo_serials, start=1):
+                log_file.write(f"- Galvo {i}: {serial}\n")
+            log_file.write("\n--------- Log Output ---------\n\n")
+
+            log_file.write(logContent)
+        return send_file(log_path, as_attachment=True)
+    return "Error: Log file not found.", 404
 
 # Run the Flask application
 if __name__ == '__main__':

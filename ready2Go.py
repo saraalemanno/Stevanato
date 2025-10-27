@@ -35,7 +35,7 @@ def set_isRunning_pin(device, state: bool):
     device.digitalIO.configure()
 
 if __name__ == "__main__":
-    print("[REPORT]Starting encoder simulation and setting ready2Go pin...\n")
+    print("[LOG]Starting encoder simulation and setting ready2Go pin...\n")
 
     encoder_thread = threading.Thread(target=start_encoder_simulation, args=(device,))
     encoder_thread.daemon = True  # Thread ends when main program ends
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m Encoder phases Test Result: FAILED!\n{err_phase}")
     else:
         print("[BOTH]\033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\nAll phases are working correctly.\n")
-        print("[REPORT]Starting the run condition...")
+        print("[LOG]Starting the run condition...")
         
         set_isRunning_pin(device, True)                            # Set pin isRunning to 1
         time.sleep(60)

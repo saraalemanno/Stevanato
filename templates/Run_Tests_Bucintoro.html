@@ -8,6 +8,23 @@
         .device-block { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
         textarea { width: 100%; height: 200px; margin-top: 10px; }
         input, button { padding: 5px; margin-top: 5px 0; }
+        #runAutoLoopTest { transition: all 0.2s ease-in-out; background-color: rgb(181, 238, 181); border: 2px solid green; color: black;}
+        #runAutoLoopTest:hover { transform: scale(1.05); background-color: rgb(181, 238, 181); cursor: pointer; }
+        #runAutoLoopTest.stop-button1 { transition: all 0.2 ease-in-out; background-color: rgb(252, 186, 186); border: 2px solid red; color: black; }
+        #runAutoLoopTest.stop-button1:hover { transform: scale(1.05); background-color: rgb(252, 186, 186); cursor: pointer; }
+        .download-button1 { transition: all 0.2s ease-in-out; background-color: lightyellow; border: 2px solid orange; color: black; }
+        .download-button1:hover { transform: scale(1.05); background-color: lightyellow; cursor: pointer; }
+        .downloadlog-button1 { transition: all 0.2s ease-in-out; background-color: lightgray; border: 2px solid orange; color: black; }
+        .downloadlog-button1:hover { transform: scale(1.05); background-color: lightgray; cursor: pointer; }
+        #runCompleteTest { transition: all 0.2s ease-in-out; background-color: rgb(181, 238, 181); border: 2px solid green; color: black;}
+        #runCompleteTest:hover { transform: scale(1.05); background-color: rgb(181, 238, 181); cursor: pointer; }
+        #runCompleteTest.stop-button2 { transition: all 0.2 ease-in-out; background-color: rgb(252, 186, 186); border: 2px solid red; color: black; }
+        #runCompleteTest.stop-button2:hover { transform: scale(1.05); background-color: rgb(252, 186, 186); cursor: pointer; }
+        .download-button2 { transition: all 0.2s ease-in-out; background-color: lightyellow; border: 2px solid orange; color: black; }
+        .download-button2:hover { transform: scale(1.05); background-color: lightyellow; cursor: pointer; }
+        .downloadlog-button2 { transition: all 0.2s ease-in-out; background-color: lightgray; border: 2px solid orange; color: black; }
+        .downloadlog-button2:hover { transform: scale(1.05); background-color: lightgray; cursor: pointer; }
+
     </style>
 </head>
 <body>
@@ -33,12 +50,14 @@
     </div>
     <div id="serialNumberContainer"></div>
     <div style="margin-top: 20px; display: flex; gap: 20px;">
-        <button id="runAutoLoopTest" onclick="RunAutoLoopTest()" style="display: flex; align-items: center; gap: 10px; border:2px solid green; padding: 10px 58px; font-size: 16px;"><img src="/static/play-button.png" alt="Play" style="height: 25px; vertical-align: bottom;">Run Auto Loop Test</button>
-        <button onclick="downloadReport()" style="display: flex; align-items: center; gap: 10px; border:2px solid yellow; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Complete Report</button>
+        <button id="runAutoLoopTest" onclick="RunAutoLoopTest()" style="display: flex; align-items: center; gap: 10px; padding: 10px 58px; font-size: 16px;"><img src="/static/play-button.png" alt="Play" style="height: 25px; vertical-align: bottom;">Run Auto Loop Test</button>
+        <button class="download-button1" onclick="downloadReport()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Complete Report</button>
+        <button class="downloadlog-button1" onclick="downloadLog()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Log</button>
     </div>
     <div style="margin-top: 20px; display: flex; gap: 20px;">
-        <button id="runCompleteTest" onclick="RunCompleteTest()" style="display: flex; align-items: center; gap: 10px; border:2px solid green; padding: 10px 20px; font-size: 16px;"><img src="/static/play-button.png" alt="Play" style="height: 25px; vertical-align: bottom;">Run Complete Simulation Test</button>
-        <button onclick="downloadReport()" style="display: flex; align-items: center; gap: 10px; border:2px solid yellow; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Complete Report</button>
+        <button id="runCompleteTest" onclick="RunCompleteTest()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/play-button.png" alt="Play" style="height: 25px; vertical-align: bottom;">Run Complete Simulation Test</button>
+        <button class="download-button2" onclick="downloadReport()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Complete Report</button>
+        <button class="downloadlog-button2" onclick="downloadLog()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Log</button>
     </div>
     <h3>Console Output:</h3>
     <div id="consoleOutput" style="white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;"></div>
@@ -53,7 +72,7 @@
             container.innerHTML = "";
 
             const mainSection = document.createElement("div");
-            mainSection.innerHTML = "<h3>Main Module Serial Number</h3>";
+            mainSection.innerHTML = "<h3 style='font-size: 140%;'>Main Module Serial Number</h3>";
 
             const inputMain = document.createElement("div");
             inputMain.style.display = "flex";
@@ -157,7 +176,7 @@
             if (!autotest_in_progress) {
                 autotest_in_progress = true;
                 button.innerHTML = "<img src='/static/stop.png' alt='Stop' style='height: 25px'> Stop Auto Loop Test";
-                button.style.border = "2px solid red";
+                button.classList.add("stop-button1");
                 consoleDiv.innerHTML += "<br><strong>Bucintoro Auto Loop Test Output:</strong><br>";
                 try{
                     const response = await fetch('/run_test_loop_bucintoro', {
@@ -179,13 +198,16 @@
                         consoleDiv.setAttribute('data-report-path', result.reportPath);
                         consoleDiv.innerHTML += `<br>Report generated<br>`;
                     }
+                    if (result.logPath) {
+                        consoleDiv.setAttribute('data-log-path', result.logPath);
+                    }
                 } catch (error) {
                     console.error = ("Error during Bucintoro Auto Loop Test:", error);
                     alert('Error during Bucintoro Auto Loop Test: ');
                 } finally {
                     autotest_in_progress = false;
                     button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Auto Loop Test";
-                    button.style.border = "2px solid green";
+                    button.classList.remove("stop-button1");
                 }
             } else {
                 try {
@@ -197,7 +219,7 @@
                 } finally {
                     test_i2c_in_progress = false;
                     button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Auto Loop Test";
-                    button.style.border = "2px solid green";
+                    button.classList.remove("stop-button1");
                 }
             }
         }
@@ -225,7 +247,7 @@
             if (!simulation_in_progress) {
                 simulation_in_progress = true;
                 button.innerHTML = "<img src='/static/stop.png' alt='Stop' style='height: 25px'> Stop Complete Simulation Test";
-                button.style.border = "2px solid red";
+                button.classList.add("stop-button2");
                 consoleDiv.innerHTML += "<br><strong>Complete Simulation Test Output:</strong><br>";
                 try{
                     const response = await fetch('/run_complete_test_bucintoro', {
@@ -247,13 +269,16 @@
                         consoleDiv.setAttribute('data-report-path', result.reportPath);
                         consoleDiv.innerHTML += `<br>Report generated<br>`;
                     }
+                    if (result.logPath) {
+                        consoleDiv.setAttribute('data-log-path', result.logPath);
+                    }
                 } catch (error) {
                     console.error = ("Error during Complete Simulation Test:", error);
                     alert('Error during Complete Simulation Test: ');
                 } finally {
                     simulation_in_progress = false;
                     button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Complete Simulation Test";
-                    button.style.border = "2px solid green";
+                    button.classList.remove("stop-button2");
                 }
             } else {
                 try {
@@ -265,7 +290,7 @@
                 } finally {
                     simulation_in_progress = false;
                     button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Complete Simulation Test";
-                    button.style.border = "2px solid green";
+                    button.classList.remove("stop-button2");
                 }
             }
         }
@@ -278,6 +303,16 @@
                 consoleDiv.innerHTML += `<br>Report saved to: <a href="/download-report?path=${encodeURIComponent(result.reportPath)}">${result.reportPath}</a>`;
             } else {
                 alert('No report available to download.');
+            }
+        }
+
+        function downloadLog() {
+            const logPath = document.getElementById('consoleOutput').getAttribute('data-log-path');
+            if (logPath) {
+                window.location.href = '/download-log?path=' + encodeURIComponent(logPath);
+                consoleDiv.innerHTML += `<br>Log saved to: <a href="/download-log?path=${encodeURIComponent(result.logPath)}">${result.logPath}</a>`;
+            } else {
+                alert('No log available to download.');
             }
         }
 

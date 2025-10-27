@@ -6,10 +6,8 @@
 # Version: 0
 
 from add_noise_v2 import start_noise
-import add_noise_v2
-import encoder_simulation_v2
 from encoder_simulation_v2 import start_encoder_simulation, check_encoder_phases
-import encoder_simulation
+import encoder_simulation_v2, I2C_test_v2, add_noise_v2, check_temperature
 from I2C_test_v2 import run_I2C_test
 from gpio_autoloop_test_v7 import run_gpio_test
 from galvo_loop_test_v4 import run_galvo_test
@@ -19,7 +17,6 @@ from pydwf import DwfLibrary, DwfAnalogOutNode, DwfAnalogOutFunction, DwfAnalogI
 from pydwf.utilities import openDwfDevice
 import sys
 import threading
-import check_temperature
 from URL import URL_API
 
 #URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
@@ -92,6 +89,17 @@ if __name__ == "__main__":
         Nmodule_galvo = int(sys.argv[2])
         run_I2C_test(Nmodule_camere, Nmodule_galvo)
         time.sleep(20)
+        if I2C_test_v2.error_i2c:
+            print("[BOTH]\033[1m\033[91mERROR\033[0m: I2C Test FAILED! Exiting...")
+            # Stopping Noise and Encoder simulation
+            encoder_simulation_v2.encoder_running = False
+            encoder_thread.join()
+            add_noise_v2.noise_running = False
+            noise_thread.join()
+            stop_event.set()
+            Tmonitor_thread.join()
+            device.close()
+            sys.exit()
         camera_addresses = list(range(20,30))
         addresses_C = camera_addresses[:Nmodule_camere]
         for address in addresses_C:

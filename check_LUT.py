@@ -150,7 +150,7 @@ def check_camera(device):
         # Trova le posizioni dei bit a 1
         active_dio = [i for i, bit in enumerate(binary_input_status) if bit == '1' and i in [9, 10, 13, 14]]
         #activations.append(f"Active DIO pins: {active_dio} at encoder position {pos_encoder}")
-        print(f"[REPORT]Active DIO pins: {active_dio} at encoder position {pos_encoder}")
+        print(f"[LOG]Active DIO pins: {active_dio} at encoder position {pos_encoder}")
         expected_pin = get_expected_pins(pos_encoder, active_dio, tolerance=1)
 
         expected_dio = []
@@ -175,8 +175,8 @@ def check_camera(device):
     else:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Camera Device Test \033[1m\033[91mFAILED\033[0m!\n")
         print(f"[BOTH]Number of errors: {errors}\n")
-        print(f"[REPORT]Error details: {error_details}")
-        print(f"[REPORT]Working details: {working_details}")
+        print(f"[LOG]Error details: {error_details}")
+        print(f"[LOG]Working details: {working_details}")
         print("[BOTH]======== END OF THE CAMERA PIN TEST ========\n[BOTH]\n")
         return error_details, errors, working_details
 
@@ -262,23 +262,23 @@ def check_galvo(device):
                 errors += 1
                 if wrong_value:
                     error_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
-                    print(f"[REPORT]At position {pos_encoder} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
+                    print(f"[LOG]At position {pos_encoder} (encoder {pos_encoder}): Expected angle {expected_angle}, but got {wrong_value}")
                 else:
                     error_details_G.append(f"At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
-                    print(f"[REPORT]At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
+                    print(f"[LOG]At position {current_pos} (encoder {pos_encoder}): Expected angle {expected_angle}, but no valid data received")
         time.sleep(0.005)
             
     if test_passed:
         print("[BOTH]\033[1m\033[92m[OK]\033[0m Galvo Device Test: \033[1m\033[92mPASSED\033[0m!\n")
         print("[BOTH]All angles are working correctly.\n")
-        print(f"[REPORT]Working details: {working_details_G}")
+        print(f"[LOG]Working details: {working_details_G}")
         print("[BOTH]======== END OF THE GALVO TEST ========\n\n")
         #return None, 0, working_details_G
     else:
         print("[BOTH]\033[1m\033[91mERROR\033[0m: Galvo Device Test \033[1m\033[91mFAILED\033[0m!\n")
         print(f"[BOTH]Number of errors: {errors}\n")
-        print(f"[REPORT]Error details: {error_details_G}")
-        print(f"[REPORT]Working details: {working_details_G}")
+        print(f"[LOG]Error details: {error_details_G}")
+        print(f"[LOG]Working details: {working_details_G}")
         print("[BOTH]======== END OF THE GALVO TEST ========\n\n")
         #return error_details_G, errors, working_details_G
 

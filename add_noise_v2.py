@@ -24,7 +24,7 @@ def start_noise(device):
         analog_out.reset(ch)
         analog_out.nodeEnableSet(ch, node, True)
         analog_out.nodeFunctionSet(ch, node, DwfAnalogOutFunction.Sine)
-        analog_out.nodeAmplitudeSet(ch, node, 2.5)          # 5Vpp = 2.5V amp
+        analog_out.nodeAmplitudeSet(ch, node, 1.5)          # 5Vpp = 2.5V amp
         analog_out.nodeOffsetSet(ch, node, 0.0)             # Offset in V
         analog_out.nodeFrequencySet(ch, node, 2)            # Frequency in Hz
         analog_out.configure(ch, start=1)                   # Abilita il generatore

@@ -54,9 +54,9 @@ def run_galvo_test(address_G, device):
     @sio.on("changed_mode", namespace=device_namespace)
     def on_changed_mode(data):
         if data.get("status") == "OK":
-            print(f"[REPORT]Mode changed successfully for device with address:", address_G)
+            print(f"[LOG]Mode changed successfully for device with address:", address_G)
         else:
-            print(f"[REPORT]Failed to change mode for device with address:", address_G)
+            print(f"[LOG]Failed to change mode for device with address:", address_G)
 
     @sio.on("manual_command_ack", namespace=device_namespace)
     def on_manual_command_ack(data):
@@ -100,7 +100,7 @@ def run_galvo_test(address_G, device):
             'new_mode': 'man'
         }
         sio.emit('change_mode', change_mode_payload['new_mode'], namespace=device_namespace)
-        print(f"[REPORT]Changing mode to manual for device with address: {device_namespace}...")
+        print(f"[LOG]Changing mode to manual for device with address: {device_namespace}...")
         time.sleep(1)
         data = {
             "id": 0,
@@ -143,11 +143,11 @@ def run_galvo_test(address_G, device):
             for bit in bits:
                 value = (value << 1) | bit
                 time.sleep(0.05)
-            print(f"[REPORT]Decoded SPI value: {value}\n")
+            print(f"[LOG]Decoded SPI value: {value}\n")
             if value != 0:
                 value = int(value)
                 degrees = ((value - 32767) / 32767) * 16
-                print(f"[REPORT]Angle in degrees: {degrees}")
+                print(f"[LOG]Angle in degrees: {degrees}")
                 if value == angle_req:
                     print("[BOTH] \033[1m\033[92m[OK]\033[0m GALVO Test Result: \033[1m\033[92mPASSED\033[0m: All pins are working correctly!")
                     end_test.set()

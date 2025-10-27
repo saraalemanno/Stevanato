@@ -35,7 +35,7 @@ def monitor_temperature(URL_API, stop_event):
         if temperature is None:
             continue  # If temperature data is not found, skip this iteration and try again
         
-        print(f"[REPORT][TEMP] Current Temperature: {temperature} °C")
+        print(f"[LOG][TEMP] Current Temperature: {temperature} °C")
         
         if temperature >= critical_temperature:
             print(f"[BOTH][TEMP]\033[1m\033[91mCRITICAL\033[0m: Temperature {temperature} °C exceeds critical limit of {critical_temperature} °C! Stopping the test.")

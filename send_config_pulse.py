@@ -48,7 +48,7 @@ def send_configuration_pulse(address):
         sio.emit("addDeviceManually", addDevice_payload, namespace=configuration_namespace)       
         print("[BOTH]Adding device ", device_name, " with address: ", address)
         time.sleep(2.5)
-        print("[REPORT]Changing mode to device...")
+        print("[LOG]Changing mode to device...")
         change_mode_payload = {
             "address": address,
             "deviceType": deviceType,
@@ -61,14 +61,14 @@ def send_configuration_pulse(address):
     def on_changed_mode(data):
         if data.get("status") == "OK":
             # Mode changed successfully, send configuration
-            print("[REPORT]Mode changed to CFG, sending configuration...")
+            print("[LOG]Mode changed to CFG, sending configuration...")
             with open(path, 'r') as file:
                 config_data = json.load(file)
             sio.emit("apply_config", config_data, namespace=device_namespace) #apply_config_to_device
-            print(f"[REPORT]Configuration sent to device with address {address}")
+            print(f"[LOG]Configuration sent to device with address {address}")
             time.sleep(5)
         else:
-            print("[REPORT]\033[1m\033[91mERROR\033[0m: Failed to change mode for device with address", address)
+            print("[LOG]\033[1m\033[91mERROR\033[0m: Failed to change mode for device with address", address)
 
     @sio.on("config_applied", namespace=device_namespace)
     def on_config_applied(data):

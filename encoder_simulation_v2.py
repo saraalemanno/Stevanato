@@ -99,7 +99,7 @@ def check_encoder_phases(URL_API):
     phaseA_err = main_status.get('phaseA_error', None)
     phaseB_err = main_status.get('phaseB_error', None)
     phaseZ_err = main_status.get('phaseZ_error', None)
-    print(f"[REPORT] Phase A Error: {phaseA_err}, Phase B Error: {phaseB_err}, Phase Z Error: {phaseZ_err}")
+    print(f"[LOG] Phase A Error: {phaseA_err}, Phase B Error: {phaseB_err}, Phase Z Error: {phaseZ_err}")
     err_phase = []
     errors = 0
     # Check that there are no errors in the phases
