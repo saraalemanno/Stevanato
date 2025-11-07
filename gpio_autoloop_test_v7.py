@@ -60,7 +60,7 @@ def run_gpio_test(address):
         out_mask |= (1<<pin)
     
     device_namespace = f"/device{address}"
-    device_name = f"Camere{address}"
+    device_name = f"Timing Controller {address}"
     deviceType = "C"
     print(f"[BOTH]====== RUN GPIO TEST FOR CAMERA{address} ======")
 
@@ -110,8 +110,10 @@ def run_gpio_test(address):
             sio.disconnect()
             if errors_gpio == 0:
                 print(f"[BOTH]\033[1m\033[92m[OK]\033[0m GPIO Test Result: \033[1m\033[92mPASSED\033[0m for CAMERA{address}\n")
+                print(f"[REPORT] {device_name} | Test: GPIO AutoLoop | Result: PASSED")
             else:
                 print(f"[BOTH]\033[1m\033[91m[ERROR]\033[0m GPIO Test Result: \033[1m\033[91mFAILED\033[0m for CAMERA{address} with {errors_gpio} errors\n")
+                print(f"[REPORT] {device_name} | Test: GPIO AutoLoop | Result: FAILED")
             print(f"[BOTH]====== END GPIO TEST FOR CAMERA{address} ======")
 
     # Acknowledgment for mode change

@@ -5,9 +5,9 @@
 # Date: 2025-09-02
 # Version: 0
 
-from add_noise_v2 import start_noise
+from add_noise_v1 import start_noise
 from encoder_simulation_v2 import start_encoder_simulation, check_encoder_phases
-import encoder_simulation_v2, I2C_test_v2, add_noise_v2, check_temperature
+import encoder_simulation_v2, I2C_test_v2, add_noise_v1, check_temperature
 from I2C_test_v2 import run_I2C_test
 from gpio_autoloop_test_v7 import run_gpio_test
 from galvo_loop_test_v4 import run_galvo_test
@@ -53,9 +53,10 @@ if __name__ == "__main__":
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test FAILED!")
             print(f"[BOTH]{err_phase}\n")
             print("[BOTH]Exiting...")
+            print("[REPORT] Pulse | Test: Encoder Test | Result: FAILED")
             # Stopping noise and encoder simulation
             encoder_simulation_v2.encoder_running = False
-            add_noise_v2.noise_running = False
+            add_noise_v1.noise_running = False
             encoder_thread.join()
             noise_thread.join()
             stop_event.set()
@@ -66,7 +67,7 @@ if __name__ == "__main__":
             print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
             # Stopping noise and encoder simulation
             encoder_simulation_v2.encoder_running = False
-            add_noise_v2.noise_running = False
+            add_noise_v1.noise_running = False
             encoder_thread.join()
             noise_thread.join()
             Tmonitor_thread.join()
@@ -75,6 +76,7 @@ if __name__ == "__main__":
         else:
             print("[BOTH] \033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\n")
             print("[BOTH]All phases are working correctly.\n")
+            print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
 
     # Add Main Device
     script_addMainDevice = 'add_MainDevice.py'
@@ -94,7 +96,7 @@ if __name__ == "__main__":
             # Stopping Noise and Encoder simulation
             encoder_simulation_v2.encoder_running = False
             encoder_thread.join()
-            add_noise_v2.noise_running = False
+            add_noise_v1.noise_running = False
             noise_thread.join()
             stop_event.set()
             Tmonitor_thread.join()
@@ -117,7 +119,7 @@ if __name__ == "__main__":
         #stop_noise(device)
         encoder_simulation_v2.encoder_running = False
         encoder_thread.join()
-        add_noise_v2.noise_running = False
+        add_noise_v1.noise_running = False
         noise_thread.join()
         device.close()
         #time.sleep(2)

@@ -198,6 +198,42 @@
                         consoleDiv.setAttribute('data-report-path', result.reportPath);
                         consoleDiv.innerHTML += `<br>Report generated<br>`;
                     }
+                    if (result.summary && Array.isArray(result.summary)) {
+                        const summaryTable = document.createElement('table');
+                        summaryTable.style.borderCollapse = 'collapse';
+                        summaryTable.style.marginTop = '10px';
+                        summaryTable.style.width = '100%';
+                        const headerRow = document.createElement('tr');
+                        ['Device', 'Test', 'Result'].forEach(headerText => {
+                            const th = document.createElement('th');
+                            th.innerText = headerText;
+                            th.style.border = '1px solid #000';
+                            th.style.padding = '8px';
+                            th.style.backgroundColor = '#f2f2f2';
+                            headerRow.appendChild(th);
+                        });
+                        summaryTable.appendChild(headerRow);
+                        result.summary.forEach(item => {
+                            const row = document.createElement('tr');
+                            const tdDevice = document.createElement('td');
+                            tdDevice.innerText = item.device || '';
+                            tdDevice.style.border = '1px solid #000';
+                            tdDevice.style.padding = '8px';
+                            row.appendChild(tdDevice);
+                            const tdTest = document.createElement('td');
+                            tdTest.innerText = item.test || '';
+                            tdTest.style.border = '1px solid #000';
+                            tdTest.style.padding = '8px';
+                            row.appendChild(tdTest);
+                            const tdResult = document.createElement('td');
+                            tdResult.innerText = item.result || '';
+                            tdResult.style.border = '1px solid #000';
+                            tdResult.style.padding = '8px';
+                            row.appendChild(tdResult);
+                            summaryTable.appendChild(row);
+                        });
+                        consoleDiv.appendChild(summaryTable);
+                    }
                     if (result.logPath) {
                         consoleDiv.setAttribute('data-log-path', result.logPath);
                     }

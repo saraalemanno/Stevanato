@@ -8,6 +8,7 @@
 # Import necessary libraries
 from flask import Flask, request, jsonify, send_file, render_template
 from flask_socketio import SocketIO, emit
+import fitz # PyMuPDF
 import subprocess
 import os
 from datetime import datetime
@@ -56,6 +57,7 @@ def run_test_bucintoro():
     report_lines = []
     log_path = os.path.join(desktop_path, log_filename)
     log_lines = []
+    summary = {}
 
     try:
         
@@ -200,22 +202,56 @@ def stop_complete_test_bucintoro():
 @app.route('/download-report')
 def download_report():
     global reportContent, report_path
-    #path = request.args.get('path')
-    #with open(report_filename, "w") as report:
+    pdf_path = report_path.replace('.txt', '.pdf')
     if report_path and reportContent:
-        with open(report_path, 'w') as report_file:
-            report_file.write("===== Bucintoro Test Report =====\n")
-            report_file.write(f"Main Module Serial Number:  {main_serial}\n")    
-            report_file.write("\nCamera Modules Serial Numbers:\n")
-            for i, serial in enumerate(camera_serials, start=1):
-                report_file.write(f"- Camera {i}: {serial}\n")
-            report_file.write("\nGalvo Modules Serial Numbers:\n")
-            for i, serial in enumerate(galvo_serials, start=1):
-                report_file.write(f"- Galvo {i}: {serial}\n")
-            report_file.write("\n--------- Test Output ---------\n\n")
+        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
 
-            report_file.write(reportContent)
-        return send_file(report_path, as_attachment=True)
+        doc = fitz.open()
+        page = doc.new_page()
+        font_size = 12
+        line_height = 16
+        start_x, y = 50, 50
+        col_widths = [130, 130, 130, 100]  # Widths for Device, Serial Number, Test, Result columns
+        col_titles = ["Device", "Serial Number", "Test", "Result"]
+
+        page.insert_text((start_x, y), "========================== Bucintoro Test Report ==========================", fontsize=font_size)
+        y += line_height
+        x = start_x
+        for i, title in enumerate(col_titles):
+            page.insert_text((x, y), title, fontsize=font_size)
+            x += col_widths[i]
+        y += line_height/2
+        
+        page.draw_line((start_x, y), (start_x + sum(col_widths), y))
+        y += line_height
+
+        rows = []
+        for line in reportContent.splitlines():
+            if "|" in line:
+                parts = line.split("|")
+                if len(parts) == 3:
+                    device_name = parts[0].strip()
+                    test_name = parts[1].replace("Test:", "").strip()
+                    result = parts[2].replace("Result:", "").strip()
+                    part = device_name.split()
+                    device_id = part[-1] if part[-1].isdigit() else None
+                    if device_id is not None:
+                        serialN = camera_serials[int(device_id)-20] if "Timing Controller" in device_name else galvo_serials[int(device_id)-30]
+                    else:
+                        serialN = main_serial
+                    
+                    rows.append([device_name, str(serialN), test_name, result])
+        rows.sort(key=lambda x: x[0])
+        for row_data in rows:
+            x = start_x
+            for i, data in enumerate(row_data):
+                page.insert_text((x, y), data, fontsize=font_size)
+                x += col_widths[i]
+            y += line_height
+        doc.save(pdf_path)
+        doc.close()
+        return send_file(pdf_path, as_attachment=True)
+
     return "Error: Report file not found.", 404
 
 # Route to download the log file

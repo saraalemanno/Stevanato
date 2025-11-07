@@ -84,6 +84,7 @@ def send_configuration_pulse(address):
             sio.emit("change_mode", change_mode_payload["new_mode"], namespace=device_namespace)
             time.sleep(3)
             print(f"[BOTH]\033[1m\033[92m[OK]\033[0m {device_name}: Ready2Go.")
+            print(f"[REPORT] {device_name} | Test: Device Reachable | Result: PASSED")
         else:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Failed to apply configuration for device with address {address}: {data.get('info')}")
 

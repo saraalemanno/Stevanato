@@ -14,10 +14,10 @@ from URL import URL_API
 
 #URL_API = 'http://10.10.0.25'                       # Bucintoro Backend URL
 
-sio = socketio.Client()
 isDeviceFound = False
 
 def send_configuration_camera(address):
+    sio = socketio.Client()
     global isDeviceFound
     path_config = "C:/Appoggio/Configurazioni"
     if 20 <= address <= 29:
@@ -85,6 +85,7 @@ def send_configuration_camera(address):
             sio.emit("change_mode", change_mode_payload["new_mode"], namespace=device_namespace)
             time.sleep(3)
             print(f"[BOTH]\033[1m\033[92m[OK]\033[0m {device_name}: Ready2Go.")
+            print(f"[REPORT] {device_name} | Test: Device Reachable | Result: PASSED")
         else:
             print(f"[LOG]\033[1m\033[91mERROR\033[0m: Failed to apply configuration for device with address {address}: {data.get('info')}")
 

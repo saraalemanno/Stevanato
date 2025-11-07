@@ -33,7 +33,7 @@ def run_galvo_test(address_G, device):
     configuration_namespace = "/config"
 
     device_namespace = f"/device{address_G}"
-    device_name = f'Galvo{address_G}'
+    device_name = f'Galvo Controller {address_G}'
     deviceType = 'G'
     galvo_started = False
     
@@ -115,6 +115,7 @@ def run_galvo_test(address_G, device):
             if time.time() - start > 10:
                 print("[BOTH]\033[1m\033[91mERROR\033[0m: Time out! Didn't receive any trigger")
                 print("[BOTH]\033[1m\033[91mERROR\033[0m: TEST FAILED!")
+                print(f"[REPORT] {device_name} | Test: Galvo Static | Result: FAILED")
                 break
             time.sleep(0.01)
         count = digital_in.statusSamplesValid()
@@ -150,9 +151,11 @@ def run_galvo_test(address_G, device):
                 print(f"[LOG]Angle in degrees: {degrees}")
                 if value == angle_req:
                     print("[BOTH] \033[1m\033[92m[OK]\033[0m GALVO Test Result: \033[1m\033[92mPASSED\033[0m: All pins are working correctly!")
+                    print(f"[REPORT] {device_name} | Test: Galvo Static | Result: PASSED")
                     end_test.set()
                 else:
                     print("[BOTH]\033[1m\033[91mERROR\033[0m: GALVO Test Result: \033[1m\033[91mFAILED\033[0m. The value received is different from the one requested!")
+                    print(f"[REPORT] {device_name} | Test: Galvo Static | Result: FAILED")
                     end_test.set()
             else:
                 print("Value = 0")
@@ -160,6 +163,7 @@ def run_galvo_test(address_G, device):
         else:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Incomplete: Not enough bits received!")
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Galvo Test Result: \033[1m\033[91mFAILED\033[0m!")
+            print(f"[REPORT] {device_name} | Test: Galvo Static | Result: FAILED")
             end_test.set()
 
         @sio.event(namespace=device_namespace)

@@ -113,7 +113,7 @@ def get_expected_pins(pos_encoder, active_dio, tolerance):
 
 
 # === Check Camera device ===
-def check_camera(device):
+def check_camera(device, address):
     print("[BOTH]======== START OF THE CAMERA PIN TEST ========\n")
     last_pos = -1                    # Last encoder position initialization
     test_passed = True
@@ -169,11 +169,13 @@ def check_camera(device):
     
     if test_passed:
         print("[BOTH]\033[1m\033[92m[OK]\033[0m Camera Device Test \033[1m\033[92mPASSED\033[0m!\n")
+        print(f"[REPORT] Timing Controller {address} | Test: GPIO Run | Result: PASSED")
         print("[BOTH]All IO pins are working correctly.\n")
         print("[BOTH]======== END OF THE CAMERA PIN TEST ========\n")
         return None, 0, working_details
     else:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Camera Device Test \033[1m\033[91mFAILED\033[0m!\n")
+        print(f"[REPORT] Timing Controller {address} | Test: GPIO Run | Result: FAILED")
         print(f"[BOTH]Number of errors: {errors}\n")
         print(f"[LOG]Error details: {error_details}")
         print(f"[LOG]Working details: {working_details}")
@@ -188,7 +190,7 @@ def get_active_interval(pos_encoder):
     return None
 
 # === Check Galvo device ===
-def check_galvo(device):
+def check_galvo(device, address_G):
     print("[BOTH]======== START OF THE GALVO TEST ========\n")
     digital_in = device.digitalIn
     digital_in.reset()
@@ -270,12 +272,14 @@ def check_galvo(device):
             
     if test_passed:
         print("[BOTH]\033[1m\033[92m[OK]\033[0m Galvo Device Test: \033[1m\033[92mPASSED\033[0m!\n")
+        print(f"[REPORT] Galvo Controller {address_G} | Test: Galvo Run | Result: PASSED")
         print("[BOTH]All angles are working correctly.\n")
         print(f"[LOG]Working details: {working_details_G}")
         print("[BOTH]======== END OF THE GALVO TEST ========\n\n")
         #return None, 0, working_details_G
     else:
         print("[BOTH]\033[1m\033[91mERROR\033[0m: Galvo Device Test \033[1m\033[91mFAILED\033[0m!\n")
+        print(f"[REPORT] Galvo Controller {address_G} | Test: Galvo Run | Result: FAILED")
         print(f"[BOTH]Number of errors: {errors}\n")
         print(f"[LOG]Error details: {error_details_G}")
         print(f"[LOG]Working details: {working_details_G}")

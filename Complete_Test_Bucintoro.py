@@ -64,6 +64,7 @@ if __name__ == "__main__":
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test Result: \033[1m\033[91mFAILED\033[0m!")
             print(f"[BOTH]{err_phase}\n")
             print("[BOTH]Exiting...")
+            print("[REPORT] Pulse | Test: Encoder Test | Result: FAILED")
             # Stopping noise and encoder simulation
             encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
@@ -86,6 +87,7 @@ if __name__ == "__main__":
         else:
             print("[BOTH] \033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\n")
             print("[BOTH]All phases are working correctly.\n")
+            print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
 
 
     
@@ -104,13 +106,14 @@ if __name__ == "__main__":
             time.sleep(10)
             if not send_config_camera.isDeviceFound:
                 print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Device with address {address} not found! Exiting...")
+                print(f"[REPORT] Timing Controller {address}| Test: Device Reachable | Result: FAILED")
                 # Stopping noise and encoder simulation
                 encoder_simulation_v2.encoder_running = False
-                add_noise_v2.noise_running = False
+                '''add_noise_v2.noise_running = False
                 encoder_thread.join()
                 noise_thread.join()
                 device.close()
-                sys.exit()
+                sys.exit()'''
             elif stop_event.is_set():
                 print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
                 # Stopping noise and encoder simulation
@@ -129,13 +132,14 @@ if __name__ == "__main__":
             time.sleep(10)
             if not send_config_galvo.isGalvoFound:
                 print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Device with address {address_G} not found! Exiting...")
+                print(f"[REPORT] Galvo Controller {address_G} | Test: Device Reachable | Result: FAILED")
                 # Stopping noise and encoder simulation
-                encoder_simulation_v2.encoder_running = False
+                '''encoder_simulation_v2.encoder_running = False
                 add_noise_v2.noise_running = False
                 encoder_thread.join()
                 noise_thread.join()
                 device.close()
-                sys.exit()
+                sys.exit()'''
             elif stop_event.is_set():
                 print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
                 # Stopping noise and encoder simulation
@@ -153,6 +157,7 @@ if __name__ == "__main__":
         time.sleep(10)
         if not send_config_pulse.isPulseFound:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Pulse device not found! Exiting...")
+            print(f"[REPORT] Pulse | Test: Device Reachable | Result: FAILED")
             # Stopping noise and encoder simulation
             encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
@@ -198,6 +203,7 @@ if __name__ == "__main__":
         errors = go2Run()                                                            # Send start command to backend
         if errors != 0:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Cannot go to RUN mode! Exiting...")
+            print("[REPORT] Pulse | Test: Go2Run | Result: FAILED")
             # Stopping noise and encoder simulation
             encoder_simulation_v2.encoder_running = False
             add_noise_v2.noise_running = False
@@ -205,6 +211,8 @@ if __name__ == "__main__":
             noise_thread.join()
             device.close()
             sys.exit()
+        elif errors == 0:
+            print("[REPORT] Pulse | Test: Go2Run | Result: PASSED")
         elif stop_event.is_set():
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
             # Stopping noise and encoder simulation
@@ -216,15 +224,15 @@ if __name__ == "__main__":
             device.close()
             sys.exit()
         time.sleep(6)
-        #for address in addresses_C: to add when another scope is added
-        check_camera(device)
-        time.sleep(15)
+        for address in addresses_C:                                             #to add when another scope is added
+            check_camera(device, address)
+            time.sleep(10)
         stop_event.set()
         Tmonitor_thread.join()
         time.sleep(10)
-        #for address_G in addresses_G: to add when another scope is added
-        check_galvo(device)
-        time.sleep(15)
+        for address_G in addresses_G:                                           #to add when another scope is added
+            check_galvo(device, address_G)
+            time.sleep(20)
         #pause_event.clear()  # Resume temperature monitoring after camera test
         Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
         #Tmonitor_thread.daemon = True                                         # Thread ends when main program ends

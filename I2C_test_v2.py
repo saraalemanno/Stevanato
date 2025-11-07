@@ -57,7 +57,7 @@ def run_I2C_test(expected_camere, expected_galvo):
         @sio.on("current_device_config", namespace=device_namespace)
         def on_device_config(data):
             print("[BOTH]Device configuration received:", device_name)
-            connected_dev.append(address)
+            connected_dev.append(device_name)
             global ack_counter_cam
             global ack_counter_galvo
             if 20 <= address <= 29:
@@ -79,6 +79,9 @@ def run_I2C_test(expected_camere, expected_galvo):
             print("[LOG]\033[1m\033[91mERROR\033[0m:", e)
     
     print("Reachable devices: ", connected_dev)
+    for dev in connected_dev:
+        print(f"[REPORT] {dev} | Test: Device Reachable | Result: PASSED")
+
     if ack_counter_cam != expected_camere:
         error_i2c = True
         print("[BOTH]\033[1m\033[91mERROR\033[0m I2C: At least 1 Timing Controller hasn't been detected!")

@@ -21,7 +21,7 @@ def send_configuration_galvo(address):
     global isGalvoFound
     path_config = "C:/Appoggio/Configurazioni"
     if 30 <= address <= 39:
-        device_name = f"Galvo{address}"
+        device_name = f"Galvo Controller {address}"
         deviceType = "G"
         device_namespace = f"/device{address}"
         path = os.path.join(path_config, f"GalvoConfigurationExport{address}_test.json")
@@ -85,6 +85,7 @@ def send_configuration_galvo(address):
             sio.emit("change_mode", change_mode_payload["new_mode"], namespace=device_namespace)
             time.sleep(3)
             print(f"[BOTH]\033[1m\033[92m[OK]\033[0m {device_name}: Ready2Go.")
+            print(f"[REPORT] {device_name} | Test: Device Reachable | Result: PASSED")
         else:
             print(f"[LOG]ERROR: Failed to apply configuration for device with address {address}: {data.get('info')}")
 
