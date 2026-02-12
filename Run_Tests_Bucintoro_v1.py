@@ -6,8 +6,8 @@
 # Version: 0
 
 from add_noise_v1 import start_noise
-from encoder_simulation_v2 import start_encoder_simulation, check_encoder_phases
-import encoder_simulation_v2, I2C_test_v2, add_noise_v1, check_temperature
+from encoder_simulation_v3 import start_encoder_simulation, check_encoder_phases
+import encoder_simulation_v3, I2C_test_v2, add_noise_v1, check_temperature
 from I2C_test_v2 import run_I2C_test
 from gpio_autoloop_test_v7 import run_gpio_test
 from galvo_loop_test_v4 import run_galvo_test
@@ -47,36 +47,36 @@ if __name__ == "__main__":
         noise_thread.start()
         time.sleep(2)
 
-        # Check encoder phase: Test result
-        err_phase, errors = check_encoder_phases(URL_API)
-        if err_phase is not None and errors != 0:
-            print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test FAILED!")
-            print(f"[BOTH]{err_phase}\n")
-            print("[BOTH]Exiting...")
-            print("[REPORT] Pulse | Test: Encoder Test | Result: FAILED")
-            # Stopping noise and encoder simulation
-            encoder_simulation_v2.encoder_running = False
-            add_noise_v1.noise_running = False
-            encoder_thread.join()
-            noise_thread.join()
-            stop_event.set()
-            Tmonitor_thread.join()
-            device.close()
-            sys.exit()
-        elif stop_event.is_set():
-            print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
-            # Stopping noise and encoder simulation
-            encoder_simulation_v2.encoder_running = False
-            add_noise_v1.noise_running = False
-            encoder_thread.join()
-            noise_thread.join()
-            Tmonitor_thread.join()
-            device.close()
-            sys.exit()
-        else:
-            print("[BOTH] \033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\n")
-            print("[BOTH]All phases are working correctly.\n")
-            print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
+    # Check encoder phase: Test result
+    err_phase, errors = check_encoder_phases(URL_API)
+    if err_phase is not None and errors != 0:
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test FAILED!")
+        print(f"[BOTH]{err_phase}\n")
+        print("[BOTH]Exiting...")
+        print("[REPORT] Pulse | Test: Encoder Test | Result: FAILED")
+        # Stopping noise and encoder simulation
+        encoder_simulation_v3.encoder_running = False
+        add_noise_v1.noise_running = False
+        encoder_thread.join()
+        noise_thread.join()
+        stop_event.set()
+        Tmonitor_thread.join()
+        device.close()
+        sys.exit()
+    elif stop_event.is_set():
+        print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
+        # Stopping noise and encoder simulation
+        encoder_simulation_v3.encoder_running = False
+        add_noise_v1.noise_running = False
+        encoder_thread.join()
+        noise_thread.join()
+        Tmonitor_thread.join()
+        device.close()
+        sys.exit()
+    else:
+        print("[BOTH] \033[1m\033[92m[OK]\033[0m Encoder phases Test Result: \033[1m\033[92mPASSED\033[0m!\n")
+        print("[BOTH]All phases are working correctly.\n")
+        print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
 
     # Add Main Device
     script_addMainDevice = 'add_MainDevice.py'
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         if I2C_test_v2.error_i2c:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: I2C Test FAILED! Exiting...")
             # Stopping Noise and Encoder simulation
-            encoder_simulation_v2.encoder_running = False
+            encoder_simulation_v3.encoder_running = False
             encoder_thread.join()
             add_noise_v1.noise_running = False
             noise_thread.join()
@@ -112,17 +112,17 @@ if __name__ == "__main__":
         if isDevicePresent:
             for address_G in addresses_G:
                 print("[BOTH]\n")
-                run_galvo_test(address_G, device)
+                run_galvo_test(address_G) #rimosso il secondo argomento device
                 time.sleep(20)
     if isDevicePresent:
         # Stopping Noise and Encoder simulation
         #stop_noise(device)
-        encoder_simulation_v2.encoder_running = False
+        encoder_simulation_v3.encoder_running = False
         encoder_thread.join()
         add_noise_v1.noise_running = False
         noise_thread.join()
         device.close()
-        #time.sleep(2)
+        time.sleep(2)
 
     print("[BOTH]======== END OF THE AUTOLOOP TEST ========")
 

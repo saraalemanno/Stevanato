@@ -13,6 +13,7 @@ import subprocess
 import os
 from datetime import datetime
 from ansi_to_html import ansi_to_html, remove_ansi_codes
+from URL import get_urls ###
 
 app = Flask(__name__, static_folder='static')
 socketio = SocketIO(app)
@@ -38,6 +39,12 @@ def run_test_bucintoro():
         return jsonify({'output': 'Bucintoro Test already executing...'})
     
     data = request.get_json()
+    environment = data.get("environment", "standard") ####
+    urls = get_urls(environment) ####
+    if environment == "novo": 
+        print("Configuring eth0 for Novo Nordisk...")
+        subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)
+
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)
     main_serial = data.get('mainSerial', 1)
@@ -46,12 +53,12 @@ def run_test_bucintoro():
 
     test_in_progress = True
     stop_loop_test_flag['stop_auto_loop_test'] = False
-    script_path = 'Run_Tests_Bucintoro_v1.py'
+    script_path = 'Run_Tests_Bucintoro_v4.py'
     full_output = ""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_filename = f"Bucintoro_test_{timestamp}.txt"
     log_filename = f"Bucintoro_log_{timestamp}.txt"
-    desktop_path = os.path.join("C:\\Appoggio", "Bucintoro_reports")
+    desktop_path = os.path.join("/home/pi/New/ScriptSara", "Bucintoro_Reports")
     os.makedirs(desktop_path, exist_ok=True)
     report_path = os.path.join(desktop_path, report_filename)
     report_lines = []
@@ -62,7 +69,14 @@ def run_test_bucintoro():
     try:
         
         process = subprocess.Popen(
-            ['python', '-u', script_path, str(num_camere), str(num_galvo)],
+            [
+                'python', '-u', script_path, 
+                str(num_camere), 
+                str(num_galvo), 
+                urls["URL_API"], 
+                urls["URL_BACKEND"], 
+                urls["IP_PLC"]
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
@@ -125,6 +139,12 @@ def run_complete_test_bucintoro():
         return jsonify({'output': 'Complete Simulation Test already executing...'})
     
     data = request.get_json()
+    environment = data.get("environment", "standard") ####
+    urls = get_urls(environment) ####
+    if environment == "novo": 
+        print("Configuring eth0 for Novo Nordisk...")
+        subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)
+
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)
     main_serial = data.get('mainSerial', 1)
@@ -133,12 +153,12 @@ def run_complete_test_bucintoro():
 
     test_in_progress = True
     stop_complete_test_flag['stop_complete_test'] = False
-    script_path = 'Complete_Test_Bucintoro.py'
+    script_path = 'Complete_Test_Bucintoro_v2.py'
     full_output = ""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_filename = f"Complete_Bucintoro_test_{timestamp}.txt"
     log_filename = f"Complete_Bucintoro_log_{timestamp}.txt"
-    desktop_path = os.path.join("C:\\Appoggio", "Bucintoro_reports")
+    desktop_path = os.path.join("/home/pi/New/ScriptSara", "Bucintoro_Reports")
     os.makedirs(desktop_path, exist_ok=True)
     report_path = os.path.join(desktop_path, report_filename)
     log_path =  os.path.join(desktop_path, log_filename)
@@ -148,7 +168,14 @@ def run_complete_test_bucintoro():
     try:
         
         process = subprocess.Popen(
-            ['python', '-u', script_path, str(num_camere), str(num_galvo)],
+            [
+                'python', '-u', script_path, 
+                str(num_camere), 
+                str(num_galvo), 
+                urls["URL_API"], 
+                urls["URL_BACKEND"], 
+                urls["IP_PLC"]
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
@@ -178,7 +205,7 @@ def run_complete_test_bucintoro():
                     cleaned_line = remove_ansi_codes(cleaned_line)
                     log_lines.append(cleaned_line)
                     print(display_line)
-                    socketio.emit('test_output', {'line': display_line})
+                    socketio.emit('test_output', {'line': display_line})                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
                     socketio.sleep(0)
                 else:
                     print(cleaned_line)
@@ -278,5 +305,5 @@ def download_log():
 
 # Run the Flask application
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 

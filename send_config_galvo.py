@@ -9,17 +9,18 @@ import requests
 import time
 import json
 import os
-from URL import URL_API
+#from URL import URL_API
 
 
 #URL_API = 'http://10.10.0.25'                       # Bucintoro Backend URL
 
 isGalvoFound = False
 
-def send_configuration_galvo(address):
+def send_configuration_galvo(URL_API,address):
     sio = socketio.Client()
     global isGalvoFound
-    path_config = "C:/Appoggio/Configurazioni"
+    isGalvoFound = False
+    path_config = "/home/pi/New/ScriptSara/Configurazioni"
     if 30 <= address <= 39:
         device_name = f"Galvo Controller {address}"
         deviceType = "G"
@@ -104,3 +105,4 @@ def send_configuration_galvo(address):
         print(f"[BOTH]====== END CONFIGURATION FOR DEVICE WITH ADDRESS {address} ======")
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: An error occurred while connecting: {e}")
+        isGalvoFound = False

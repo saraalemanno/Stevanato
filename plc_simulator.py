@@ -6,10 +6,14 @@
 
 import time
 import requests
-import URL
-from URL import URL_BACKEND, URL_API, get_main_status
+#import URL
+from URL import get_main_status
+import sys
 
 errors = 0
+URL_API = sys.argv[3] 
+URL_BACKEND = sys.argv[4] 
+IP_PLC = sys.argv[5]
 
 # Function to send the start request to the backend
 def send_start_request():

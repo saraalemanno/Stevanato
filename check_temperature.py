@@ -10,7 +10,7 @@ import requests
 import time
 import threading
 import sys
-from URL import URL_API, get_main_status
+from URL import get_main_status
 
 #URL_API = 'http://10.10.0.25/api/v2/main_status'              # API URL for REST requests
 #stop_test = False

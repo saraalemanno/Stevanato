@@ -8,9 +8,12 @@
 
 import socketio
 import time
-from URL import IP_PLC, URL_BACKEND
+import sys
+#from URL import IP_PLC, URL_BACKEND
 
 isPLCConfigured = False
+URL_BACKEND = sys.argv[4] 
+IP_PLC = sys.argv[5]
 
 def send_configuration_PLC():
     global isPLCConfigured

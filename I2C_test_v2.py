@@ -10,18 +10,29 @@
 import time
 import socketio
 import sys
-from URL import URL_BACKEND
+#from URL import URL_BACKEND
 
 ack_counter_cam = 0
 ack_counter_galvo = 0
 error_i2c = False
 connected_dev = []
 
+camera_addresses = []
+galvo_addresses = []
+URL_API = sys.argv[3] 
+URL_BACKEND = sys.argv[4] 
+IP_PLC = sys.argv[5]
+
 def run_I2C_test(expected_camere, expected_galvo):
     global connected_dev
     global ack_counter_cam
     global ack_counter_galvo
     global error_i2c
+    global camera_addresses
+    global galvo_addresses
+
+    camera_addresses = [] 
+    galvo_addresses = []
     error_i2c = False
     addresses = list(range(20,39 + 1))
     configuration_namespace = '/config'                            # Namespace for configuration
@@ -62,8 +73,10 @@ def run_I2C_test(expected_camere, expected_galvo):
             global ack_counter_galvo
             if 20 <= address <= 29:
                 ack_counter_cam += 1
+                camera_addresses.append(address)
             elif 30 <= address <= 39:
                 ack_counter_galvo += 1
+                galvo_addresses.append(address)
             
 
         @sio.event(namespace = device_namespace)
@@ -94,3 +107,5 @@ def run_I2C_test(expected_camere, expected_galvo):
         print("[BOTH]\033[1m\033[92m[OK]\033[0m Test I2C \033[1m\033[92mPASSED\033[0m for Galvo devices")
         
     print("[BOTH]======= END OF I2C TEST ======= \n")
+
+    return camera_addresses, galvo_addresses

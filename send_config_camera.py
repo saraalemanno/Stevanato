@@ -9,17 +9,18 @@ import requests
 import time
 import json
 import os
-from URL import URL_API
+#from URL import URL_API
 
 
 #URL_API = 'http://10.10.0.25'                       # Bucintoro Backend URL
 
 isDeviceFound = False
 
-def send_configuration_camera(address):
+def send_configuration_camera(URL_API,address):
     sio = socketio.Client()
     global isDeviceFound
-    path_config = "C:/Appoggio/Configurazioni"
+    isDeviceFound = False
+    path_config = "/home/pi/New/ScriptSara/Configurazioni"
     if 20 <= address <= 29:
         device_name = f"Timing Controller {address}"
         deviceType = "C"
@@ -104,5 +105,6 @@ def send_configuration_camera(address):
         print(f"[BOTH]====== END CONFIGURATION FOR DEVICE WITH ADDRESS {address} ======")
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: An error occurred while connecting: {e}")
+        isDeviceFound = False
 
   

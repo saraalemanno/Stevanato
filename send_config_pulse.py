@@ -9,16 +9,17 @@ import requests
 import time
 import json
 import os
-from URL import URL_API
+#from URL import URL_API
 
 
 #URL_API = 'http://10.10.0.25'                       # Bucintoro Backend URL
-sio = socketio.Client()
 isPulseFound = False
 
-def send_configuration_pulse(address):
+def send_configuration_pulse(URL_API,address):
+    sio = socketio.Client()
     global isPulseFound
-    path_config = "C:/Appoggio/Configurazioni"
+    isPulseFound = False
+    path_config = "/home/pi/New/ScriptSara/Configurazioni"
     if address == 10:
         device_name = "Pulse"
         deviceType = "P"
@@ -103,3 +104,4 @@ def send_configuration_pulse(address):
         print(f"[BOTH]====== END CONFIGURATION FOR DEVICE WITH ADDRESS {address} ======")
     except Exception as e:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: An error occurred while connecting: {e}")
+        isPulseFound = False

@@ -2,11 +2,12 @@
 
 import socketio
 import time
-from URL import URL_BACKEND
+import sys
+#from URL import URL_BACKEND
 
 #URL_BACKEND = 'http://10.10.0.25'                       # Bucintoro Backend URL
 sio = socketio.Client()
-
+URL_BACKEND = sys.argv[4] 
 device_address = 10                                       # Main device address
 config_namespace = '/config'                            # Namespace for configuration
 device_namespace = '/device10'                          # Namespace for device communication

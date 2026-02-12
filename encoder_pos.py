@@ -1,6 +1,6 @@
 # This code is meant to keep track of the position of the encoder
 # and make it available for other scripts to be synced with it.
-
+from ArduinoController import get_pos_encoder
 pos_encoder = 0
 
 '''def update_position(impulse_count):

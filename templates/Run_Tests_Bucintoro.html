@@ -47,6 +47,15 @@
             </label>
             <input type="number" id="numGalvo" name="numGalvo" min="1" max="10" value="1" style="padding: 5px;">
         </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="environment" style="width: 500px;">
+                Select Environment (Backend + API):
+            </label>
+            <select id="environment" name="environment" style="padding: 5px;">
+                <option value="standard">Standard</option>
+                <option value="novo">Novo Nordisk</option>
+            </select>
+        </div>
     </div>
     <div id="serialNumberContainer"></div>
     <div style="margin-top: 20px; display: flex; gap: 20px;">
@@ -189,7 +198,8 @@
                             numGalvo,
                             mainSerial,
                             cameraSerials,
-                            galvoSerials
+                            galvoSerials,
+                            environment: document.getElementById("environment").value
                          }) 
                     });
                     const result = await response.json();
@@ -296,7 +306,8 @@
                             numGalvo,
                             mainSerial,
                             cameraSerials,
-                            galvoSerials
+                            galvoSerials,
+                            environment: document.getElementById("environment").value
                          }) 
                     });
                     const result = await response.json();
