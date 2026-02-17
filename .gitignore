@@ -1,0 +1,18 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Ignora cartelle che non vuoi tracciare
+Bucintoro_Reports/
+Configurazioni/
+bin/
+lib/
+lib64/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Log
+*.log
+
+# Ambiente virtuale (se presente)
+venv/
+
