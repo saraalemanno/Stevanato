@@ -214,7 +214,7 @@ class ArduinoDevice:
         response = self._read_line("ANGLES:", timeout=0.5)
         if not response:
             return [], None
-        print(response)
+        #print(response)
         parts = response.split(";")
         angle_part = parts[0]
         #enc_part = parts[1] if len(parts) > 1 else None

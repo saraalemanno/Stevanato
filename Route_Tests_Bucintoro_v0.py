@@ -39,11 +39,23 @@ def run_test_bucintoro():
         return jsonify({'output': 'Bucintoro Test already executing...'})
     
     data = request.get_json()
-    environment = data.get("environment", "standard") ####
-    urls = get_urls(environment) ####
-    if environment == "novo": 
-        print("Configuring eth0 for Novo Nordisk...")
-        subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)
+    environment = data.get("env", "standard") ####
+    custom_data = None 
+    print(environment)
+    if environment == "custom": 
+        custom_data = { 
+            "BACKEND_IP": data.get("BACKEND_IP"), 
+            "IP_PLC": data.get("IP_PLC") 
+            }
+    urls = get_urls(environment, custom_data) ####
+    if environment == "custom":
+        plc_ip = custom_data.get("IP_PLC")
+        if plc_ip:
+            print(f"Configuring eth0 with custom IP: {plc_ip}")
+            subprocess.run(
+                ["sudo", "/home/pi/New/ScriptSara/set_custom_network.sh", plc_ip],
+                check=True
+            )
 
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)
@@ -139,11 +151,24 @@ def run_complete_test_bucintoro():
         return jsonify({'output': 'Complete Simulation Test already executing...'})
     
     data = request.get_json()
-    environment = data.get("environment", "standard") ####
-    urls = get_urls(environment) ####
-    if environment == "novo": 
-        print("Configuring eth0 for Novo Nordisk...")
-        subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)
+    environment = data.get("env", "standard") ####
+    print(environment)
+    custom_data = None 
+    if environment == "custom": 
+        custom_data = { 
+            "BACKEND_IP": data.get("BACKEND_IP"), 
+            "IP_PLC": data.get("IP_PLC") 
+            }
+    urls = get_urls(environment, custom_data) ####
+    #urls = get_urls(environment) ####
+    if environment == "custom":
+        plc_ip = custom_data.get("IP_PLC")
+        if plc_ip:
+            print(f"Configuring eth0 with custom IP: {plc_ip}")
+            subprocess.run(
+                ["sudo", "/home/pi/New/ScriptSara/set_custom_network.sh", plc_ip],
+                check=True
+            )
 
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)

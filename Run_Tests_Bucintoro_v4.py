@@ -70,6 +70,44 @@ if __name__ == "__main__":
         print("[BOTH]All phases are working correctly.\n")
         print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
 
+    missing_cfg = arduino_main.get_missing_cfg()
+    time.sleep(0.5)
+    run_galvo_pin = arduino_main.get_run_galvo()
+    time.sleep(0.5)
+    run_pulse_pin = arduino_main.get_run_pulse()
+    time.sleep(0.5)
+    run_camera_pin = arduino_main.get_run_camera()
+    if missing_cfg is None or run_camera_pin is None or run_galvo_pin is None or run_pulse_pin is None: 
+        print("[BOTH] Impossibile to read at leat one pin from the shared bus!")
+
+    if missing_cfg == 0: 
+        print("[BOTH] \033[1m\033[92m[OK]\033[0m Shared pin SHARE_IO_1 at 0 (Missing cfg)\n")
+    else:
+        print(f"[BOTH]\033[1m\033[93mWARNING\033[0m: Shared pin SHARE_IO_1 already at 1 (Missing cfg)!\n")
+
+    if run_pulse_pin != 1:
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_3 (Stop_Run_Pulse) \033[1m\033[91mBROKEN\033[0m!")
+        print("[REPORT] Shared Bus | Test: SHARE_IO_3 | Result:FAILED")
+        arduino_main.stop_noise()
+        stop_event.set()
+        Tmonitor_thread.join()
+        sys.exit()
+    if run_galvo_pin != 1:
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_2 (Stop_Run_Galvo) \033[1m\033[91mBROKEN\033[0m!")
+        print("[REPORT] Shared Bus | Test: SHARE_IO_2 | Result:FAILED")
+        arduino_main.stop_noise()
+        stop_event.set()
+        Tmonitor_thread.join()
+        sys.exit()
+    if run_camera_pin != 1:
+        print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_6 (Stop_Run_Camere) \033[1m\033[91mBROKEN\033[0m!")
+        print("[REPORT] Shared Bus | Test: SHARE_IO_6 | Result:FAILED")
+        arduino_main.stop_noise()
+        stop_event.set()
+        Tmonitor_thread.join()
+        sys.exit()
+    
+    
     # Add Main Device
     script_addMainDevice = 'add_MainDevice.py'
     subprocess.run(['python', '-u', script_addMainDevice])

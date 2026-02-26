@@ -22,11 +22,9 @@
 import time
 import requests
 import numpy as np
-#from encoder_simulation_v3 import get_pos_encoder
-#from ArduinoController_v3 import ArduinoDevice
 import sys
 import serial
-#from URL import URL_API
+from plc_simulator import go2Run, send_stop_request
 
 sys.stdout.reconfigure(encoding='utf-8')  # To print special characters
 URL_API = sys.argv[3] 
@@ -231,16 +229,37 @@ def check_galvo(address_G, arduino):
 
     time.sleep(1.5)  # stabilizzazione
 
+    no_angle_counter = 0 
+    restart_attempted = False
+
     while time.time() - start_time < test_duration:
         time.sleep(1)  # rate limit per non saturare Arduino
         angles, pos_encoder = arduino.get_angles()
-
+        print(f"[LOG]Enc {pos_encoder}, Angle: {angles}")
         if pos_encoder is None or not angles:
-            print(f"enc {pos_encoder}, angle: {angles}")
+            no_angle_counter += 1
+            if no_angle_counter >= 3: 
+                if not restart_attempted: 
+                    print("[LOG] No angles 3 times → sending stop request") 
+                    send_stop_request() 
+                    time.sleep(1) 
+                    print("[LOG] Restarting run...") 
+                    errors = go2Run() 
+                    # reset contatore e segna che abbiamo già tentato 
+                    no_angle_counter = 0 
+                    restart_attempted = True 
+                    print("[LOG] Restart attempt completed, resuming loop\n") 
+                    continue 
+                else: 
+                    print("[LOG] No angles received even after restart. Possible Arduino failing.") 
+                    #test_passed = False 
+                    error_details_G.append("No angles received after restart attempt") 
+                    break
             continue
+        no_angle_counter = 0
         interval = get_active_interval(pos_encoder)
         if not interval:
-            print("not in a good interval")
+            print("[LOG]Not in a good interval")
             continue
 
         enc_range = tuple(interval["enc"])
@@ -248,7 +267,7 @@ def check_galvo(address_G, arduino):
         #expected_angle = expected_galvo_from_config(pos_encoder)
 
         if enc_range in validated_intervals:
-            print("interval already validated")
+            print("[LOG]Interval already validated")
             continue
         received = True
         value = 0
@@ -257,7 +276,7 @@ def check_galvo(address_G, arduino):
 
         print(f"[LOG]Decoded SPI value: {value} at encoder {pos_encoder}")
 
-        if abs(value - expected_angle) <= TOL: #value == expected_angle:
+        if abs(value - expected_angle) <= TOL: 
             validated_intervals.add(enc_range)
             working_details_G.append(
                 f"At encoder {pos_encoder}: Expected {expected_angle}, got {value}"

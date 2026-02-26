@@ -12,13 +12,13 @@ from URL import get_urls
 # ==========================
 # CONFIGURAZIONE
 # ==========================
-environment = input("Seleziona environment (standard/novo): ").strip().lower()
-N_galvo = int(input("Numero moduli galvo: "))
+environment = input("Seleziona environment (standard/nn): ").strip().lower()
 N_camere = int(input("Numero moduli camere: "))
+N_galvo = int(input("Numero moduli galvo: "))
 time2run = int(input("Durata totale test (min): "))
 wait_before_test = 90 
 urls = get_urls(environment)
-if environment == "novo": 
+if environment == "nn": 
     print("Configuring eth0 for Novo Nordisk...")
     subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)
 
@@ -39,6 +39,7 @@ DESKTOP_PATH = "/home/pi/New/ScriptSara/Bucintoro_Reports"
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 REPORT_PATH_TXT = os.path.join(DESKTOP_PATH, f"cyclic_test_report_{timestamp}.txt")
 REPORT_PATH_PDF = os.path.join(DESKTOP_PATH, f"cyclic_test_report_{timestamp}.pdf")
+error_lines = []
 
 os.makedirs(DESKTOP_PATH, exist_ok=True)
 
@@ -144,6 +145,9 @@ while time.time() < end_time:
             if line:
                 cleaned_line = line.strip()
                 print(cleaned_line)
+                if "ERROR" in cleaned_line:
+                    error_lines.append(f"Cycle {cycle_count}: {cleaned_line}")
+                    failures += 1
 
         # POWER OFF
 
@@ -188,6 +192,22 @@ c.drawString(100, 680, f"Cicli eseguiti: {cycle_count}")
 c.drawString(100, 660, f"Numero fallimenti: {failures}")
 result = "PASSATO" if failures == 0 else f"FALLITO ({failures} errori)"
 c.drawString(100, 640, f"Risultato: {result}")
+y = 610 # posizione iniziale per gli errori 
+if error_lines: 
+    c.setFont("Helvetica", 12) 
+    c.drawString(100, y, "Errori rilevati:") 
+    y -= 20 
+    for err in error_lines: 
+        # Se la riga è troppo lunga, la tronchiamo per non uscire dal foglio 
+        max_len = 90 
+        safe_err = err if len(err) <= max_len else err[:max_len] + "..." 
+        c.drawString(100, y, safe_err) 
+        y -= 20 
+        # Se finiamo la pagina, ne creiamo una nuova 
+        if y < 50: 
+            c.showPage() 
+            c.setFont("Helvetica", 12) 
+            y = 800
 c.save()
 
 with open(REPORT_PATH_TXT, "w") as txt:
@@ -196,6 +216,10 @@ with open(REPORT_PATH_TXT, "w") as txt:
     txt.write(f"Data fine: {datetime.fromtimestamp(end_time)}\n")
     txt.write(f"Cicli eseguiti: {cycle_count}\n")
     txt.write(f"Numero fallimenti: {failures}\n")
-    txt.write(f"Risultato: {result}\n")
+    txt.write(f"Risultato: {result}\n\n")
+    if error_lines: 
+        txt.write("Errori rilevati:\n") 
+        for err in error_lines: 
+            txt.write(f" - {err}\n")
 
 print(f"Test completato. Report salvato in {REPORT_PATH_TXT}")

@@ -5,23 +5,6 @@
 
 import requests
 
-'''
-Old solution
-#URL_BACKEND = 'http://10.10.0.25'                           # Bucintoro Backend URL
-#URL_API = 'http://10.10.0.25/api/v2/main_status'            # API URL for REST requests
-#IP_PLC = '10.10.0.20'
-
-
-#URL_BACKEND = 'http://10.10.150.99'                           # Bucintoro Backend URL
-#URL_API = 'http://10.10.150.99/api/v2/main_status'            # API URL for REST requests
-#IP_PLC = '10.10.150.20'
-
-#NOVO NORDISK
-#URL_API = 'http://172.30.135.41/api/v2/main_status'
-#URL_BACKEND = 'http://172.30.135.41'
-#IP_PLC = '172.30.135.40'
-'''
-
 # URL.py
 # Centralized configuration for all Bucintoro environments.
 # No imports, no side effects — just data and a helper function.
@@ -32,21 +15,33 @@ URLS = {
         "URL_BACKEND": "http://10.10.0.25",
         "IP_PLC": "10.10.0.20"
     },
-
+}
+'''
     "novo": {
         "URL_API": "http://172.30.135.41/api/v2/main_status",
         "URL_BACKEND": "http://172.30.135.41",
         "IP_PLC": "172.30.135.40"
     }
-}
+}'''
 
 
-def get_urls(env: str):
+def get_urls(env: str, custom_data=None):
     """
     Returns the URL configuration for the selected environment.
-    Defaults to 'bucintoro' if the environment is unknown.
+    If env == 'custom', build URL_API automatically from URL_BACKEND.
     """
-    return URLS.get(env, URLS["standard"])
+    if env == "custom" and custom_data:
+        backend_ip = custom_data.get("BACKEND_IP")
+        backend_url = f"http://{backend_ip}" 
+        api_url = f"http://{backend_ip}/api/v2/main_status"
+        return {
+            "URL_BACKEND": backend_url,
+            "URL_API": api_url,
+            "IP_PLC": custom_data.get("IP_PLC")
+        }
+
+    return URLS["standard"]
+
 
 # === Fetch main status from Bucintoro API ===
 # This function retrieves the main status from the Bucintoro API.

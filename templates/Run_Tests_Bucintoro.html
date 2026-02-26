@@ -53,8 +53,15 @@
             </label>
             <select id="environment" name="environment" style="padding: 5px;">
                 <option value="standard">Standard</option>
-                <option value="novo">Novo Nordisk</option>
+                <option value="custom">Custom</option>
             </select>
+        </div>
+        <div id="customConfig" style="display:none; margin-top: 10px;">
+            <label>Custom Backend IP:</label>
+            <input type="text" id="customBackend" placeholder="X.X.X.X">
+
+            <label>Custom PLC IP:</label>
+            <input type="text" id="customPlc" placeholder="X.X.X.X">
         </div>
     </div>
     <div id="serialNumberContainer"></div>
@@ -70,9 +77,15 @@
     </div>
     <h3>Console Output:</h3>
     <div id="consoleOutput" style="white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;"></div>
+    <script>
+        document.getElementById("environment").addEventListener("change", function() {
+            const env = this.value;
+            document.getElementById("customConfig").style.display = 
+                env === "custom" ? "block" : "none";
+        });
+    </script>
     <script src= "/static/socket.io.min.js"></script>
     <script>
-
         function updateSerialInputs() {
             const numCamere = parseInt(document.getElementById("numCamere").value);
             const numGalvo = parseInt(document.getElementById("numGalvo").value);
@@ -161,6 +174,19 @@
         document.getElementById("numCamere").addEventListener("change", updateSerialInputs);
         document.getElementById("numGalvo").addEventListener("change", updateSerialInputs);
         window.addEventListener("DOMContentLoaded", updateSerialInputs);
+        function getEnvironmentConfig() {
+            const env = document.getElementById("environment").value;
+
+            if (env === "custom") {
+                return {
+                    env: "custom",
+                    BACKEND_IP: document.getElementById("customBackend").value,
+                    IP_PLC: document.getElementById("customPlc").value
+                };
+            }
+
+            return { env: env };
+        }
 
         let autotest_in_progress = false;
         async function RunAutoLoopTest() {
@@ -199,7 +225,7 @@
                             mainSerial,
                             cameraSerials,
                             galvoSerials,
-                            environment: document.getElementById("environment").value
+                            ...getEnvironmentConfig()
                          }) 
                     });
                     const result = await response.json();
@@ -307,7 +333,7 @@
                             mainSerial,
                             cameraSerials,
                             galvoSerials,
-                            environment: document.getElementById("environment").value
+                            ...getEnvironmentConfig()
                          }) 
                     });
                     const result = await response.json();
