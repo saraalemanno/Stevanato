@@ -433,7 +433,7 @@ def download_report():
         font_size = 12
         line_height = 16
         start_x, y = 50, 50
-        col_widths = [130, 130, 130, 100]  # Widths for Device, Serial Number, Test, Result columns
+        col_widths = [130, 120, 140, 110]  # Widths for Device, Serial Number, Test, Result columns
         col_titles = ["Device", "Serial Number", "Test", "Result"]
 
         page.insert_text((start_x, y), "========================== Bucintoro Test Report ==========================", fontsize=font_size)
@@ -457,11 +457,24 @@ def download_report():
                     result = parts[2].replace("Result:", "").strip()
                     part = device_name.split()
                     device_id = part[-1] if part[-1].isdigit() else None
+                    # Default: se non c’è device ID numerico → usa main_serial
+                    serialN = main_serial
                     if device_id is not None:
-                        serialN = camera_serials[int(device_id)-20] if "Timing Controller" in device_name else galvo_serials[int(device_id)-30]
-                    else:
-                        serialN = main_serial
-                    
+                        device_id = int(device_id)
+                        # Determina se è camera o galvo
+                        if "Timing Controller" in device_name:
+                            idx = device_id - 20
+                            serial_list = camera_serials
+                        else:
+                            idx = device_id - 30
+                            serial_list = galvo_serials
+                        # Se l’indice è valido → assegna il seriale corretto
+                        if 0 <= idx < len(serial_list):
+                            serialN = serial_list[idx]
+                        else:
+                            # Se l’indice NON è valido → NON assegnare nulla
+                            # (serialN rimane main_serial SOLO se device_id non era numerico)
+                            serialN = ""
                     rows.append([device_name, str(serialN), test_name, result])
         rows.sort(key=lambda x: x[0])
         for row_data in rows:
