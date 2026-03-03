@@ -99,24 +99,24 @@ if __name__ == "__main__":
     if run_pulse_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_3 (Stop_Run_Pulse) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_3 | Result:FAILED")
-        arduino_main.stop_noise()
+        '''arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
-        sys.exit()
+        sys.exit()'''
     if run_galvo_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_2 (Stop_Run_Galvo) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_2 | Result:FAILED")
-        arduino_main.stop_noise()
+        '''arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
-        sys.exit()
+        sys.exit()'''
     if run_camera_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_6 (Stop_Run_Camere) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_6 | Result:FAILED")
-        arduino_main.stop_noise()
+        '''arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
-        sys.exit()
+        sys.exit()'''
         
     if len(sys.argv) < 3:
         print("[BOTH]Numbers of connected modules is not provided!")
@@ -182,15 +182,15 @@ if __name__ == "__main__":
         missing_cfg = arduino_main.get_missing_cfg()
         if missing_cfg != 1:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Missing cfg is not 1 after the configuration! Value:", missing_cfg)
-            print("[BOTH]Exiting...")
+            #print("[BOTH]Exiting...")
             print("[REPORT] Shared Bus | Test: MissingCfg Functionality  Result: FAILED")
-            arduino_main.stop_noise()
+            '''arduino_main.stop_noise()
             stop_event.set()
             Tmonitor_thread.join()
-            sys.exit()
-
-        print("[BOTH]\033[1m\033[92m[OK]\033[0m Missing cfg at 1 after the configuration.")
-        print("[REPORT] Shared Bus | Test: MissingCfg Functionality | Result: PASSED")
+            sys.exit()'''
+        else:
+            print("[BOTH]\033[1m\033[92m[OK]\033[0m Missing cfg at 1 after the configuration.")
+            print("[REPORT] Shared Bus | Test: MissingCfg Functionality | Result: PASSED")
 
         
         # Send PLC configuration
@@ -235,11 +235,11 @@ if __name__ == "__main__":
         if sharedpin_commutation:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: No commutation on pin: run {', '.join(sharedpin_commutation)} after going to RUN!")
             print("[REPORT] Shared Bus | Test: RunPins Functionality | Result: FAILED")
-            send_stop_request()  
+            '''send_stop_request()  
             stop_event.set()
             arduino_main.stop_noise()
             Tmonitor_thread.join()
-            sys.exit()
+            sys.exit()'''
         else:
             print("[BOTH]\033[1m\033[92m[OK]\033[0m Commutation detected on run pins after going to RUN")
             #print("[REPORT] Shared Bus | Test: RunPins | Result: PASSED")
@@ -255,7 +255,7 @@ if __name__ == "__main__":
         stop_event.set()
         Tmonitor_thread.join()
         time.sleep(5)
-        for i, arduino in enumerate(arduino_list): 
+        for i, arduino in enumerate(arduino_list):  
             if i >= len(addresses_G): 
                 break
             galvo_addr = addresses_G[i]
@@ -277,10 +277,10 @@ if __name__ == "__main__":
         if sharedpin_commutation:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: No commutation on pin: run {', '.join(sharedpin_commutation)} after going to RUN!")
             print("[REPORT] Shared Bus | Test: RunPins Functionality | Result: FAILED")
-            stop_event.set()
+            '''stop_event.set()
             arduino_main.stop_noise()
             Tmonitor_thread.join()
-            sys.exit()
+            sys.exit()'''
         else:
             print("[BOTH]\033[1m\033[92m[OK]\033[0m Commutation detected on run pins after going to RUN")
             print("[REPORT] Shared Bus | Test: RunPins Functionality | Result: PASSED")

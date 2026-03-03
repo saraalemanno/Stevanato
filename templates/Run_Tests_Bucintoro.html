@@ -24,7 +24,14 @@
         .download-button2:hover { transform: scale(1.05); background-color: lightyellow; cursor: pointer; }
         .downloadlog-button2 { transition: all 0.2s ease-in-out; background-color: lightgray; border: 2px solid orange; color: black; }
         .downloadlog-button2:hover { transform: scale(1.05); background-color: lightgray; cursor: pointer; }
-
+        #runLongRunTest { transition: all 0.2s ease-in-out; background-color: rgb(181, 238, 181); border: 2px solid green; color: black; }
+        #runLongRunTest:hover { transform: scale(1.05); background-color: rgb(181, 238, 181); cursor: pointer; }
+        #runLongRunTest.stop-button3 { transition: all 0.2 ease-in-out; background-color: rgb(252, 186, 186); border: 2px solid red; color: black; }
+        #runLongRunTest.stop-button3:hover { transform: scale(1.05); background-color: rgb(252, 186, 186); cursor: pointer; }
+        .download-button3 { transition: all 0.2s ease-in-out; background-color: lightyellow; border: 2px solid orange; color: black; }
+        .download-button3:hover { transform: scale(1.05); background-color: lightyellow; cursor: pointer; }
+        .downloadlog-button3 { transition: all 0.2s ease-in-out; background-color: lightgray; border: 2px solid orange; color: black; }
+        .downloadlog-button3:hover { transform: scale(1.05); background-color: lightgray; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -36,16 +43,22 @@
     <div style="display: flex; flex-direction: column; gap: 10px; font-size: 120%; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <label for="numCamere" style="width: 500px;">
-                Number of connected <b>Timing Controller</b> modules (1-10):
+                Number of connected <b>Timing Controller</b> modules (0-10):
             </label>
-            <input type="number" id="numCamere" name="numCamere" min="1" max="10" value="1" style="padding: 5px;">
+            <input type="number" id="numCamere" name="numCamere" min="0" max="10" value="1" style="padding: 5px;">
         </div>
 
         <div style="display: flex; align-items: center; gap: 10px;">
             <label for="numGalvo" style="width: 500px;">
-                Number of connected <b>Galvo</b> modules (1-10):
+                Number of connected <b>Galvo</b> modules (0-10):
             </label>
-            <input type="number" id="numGalvo" name="numGalvo" min="1" max="10" value="1" style="padding: 5px;">
+            <input type="number" id="numGalvo" name="numGalvo" min="0" max="10" value="1" style="padding: 5px;">
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="time2run">
+                Durata Long Run Test (minuti):
+            </label>
+            <input type="number" id="time2run" min="1" value="60">
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
             <label for="environment" style="width: 500px;">
@@ -74,6 +87,11 @@
         <button id="runCompleteTest" onclick="RunCompleteTest()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/play-button.png" alt="Play" style="height: 25px; vertical-align: bottom;">Run Complete Simulation Test</button>
         <button class="download-button2" onclick="downloadReport()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Complete Report</button>
         <button class="downloadlog-button2" onclick="downloadLog()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Log</button>
+    </div>
+    <div style="margin-top: 20px; display: flex; gap: 20px;">
+        <button id="runLongRunTest" onclick="RunLongRunTest()" style="display: flex; align-items: center; gap: 10px; padding: 10px 59px; font-size: 16px;"><img src="/static/play-button.png" alt="Play" style="height: 25px; vertical-align: bottom;">Run Long Run Test</button>
+        <button class="download-button3" onclick="downloadReport()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Complete Report</button>
+        <button class="downloadlog-button3" onclick="downloadLog()" style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 16px;"><img src="/static/download3.png" alt="Play" style="height: 25px; vertical-align: bottom;">Download Log</button>
     </div>
     <h3>Console Output:</h3>
     <div id="consoleOutput" style="white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;"></div>
@@ -364,6 +382,84 @@
                     simulation_in_progress = false;
                     button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Complete Simulation Test";
                     button.classList.remove("stop-button2");
+                }
+            }
+        }
+
+        let longrun_in_progress = false;
+        async function RunLongRunTest() {
+            const button = document.getElementById('runLongRunTest');
+            const consoleDiv = document.getElementById('consoleOutput');
+
+            const numCamere = parseInt(document.getElementById('numCamere').value);
+            const numGalvo = parseInt(document.getElementById('numGalvo').value);
+            const time2run = parseInt(document.getElementById('time2run').value);
+
+            const mainSerial = document.getElementById(`mainSerial`).value;
+            const cameraSerials = [];
+            const galvoSerials = [];
+
+            for (let i = 1; i <= numCamere; i++) {
+                const val = document.getElementById(`cameraSerial${i}`).value || "";
+                cameraSerials.push(val);
+            }
+            for (let i = 1; i <= numGalvo; i++) {
+                const val = document.getElementById(`galvoSerial${i}`).value || "";
+                galvoSerials.push(val);
+            }
+
+            if (!longrun_in_progress) {
+                longrun_in_progress = true;
+                button.innerHTML = "<img src='/static/stop.png' alt='Stop' style='height: 25px'> Stop Long Run Test";
+                button.classList.add("stop-button3");
+                consoleDiv.innerHTML += "<br><strong>Long Run Test Output:</strong><br>";
+
+                try {
+                    const response = await fetch('/run_long_test_bucintoro', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            numCamere,
+                            numGalvo,
+                            time2run,
+                            mainSerial,
+                            cameraSerials,
+                            galvoSerials,
+                            ...getEnvironmentConfig()
+                        })
+                    });
+
+                    const result = await response.json();
+                    consoleDiv.innerHTML += result.output;
+
+                    if (result.reportPath) {
+                        consoleDiv.setAttribute('data-report-path', result.reportPath);
+                        consoleDiv.innerHTML += `<br>Report generated<br>`;
+                    }
+                    if (result.logPath) {
+                        consoleDiv.setAttribute('data-log-path', result.logPath);
+                    }
+
+                } catch (error) {
+                    console.error("Error during Long Run Test:", error);
+                    alert('Error during Long Run Test');
+                } finally {
+                    longrun_in_progress = false;
+                    button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Long Run Test";
+                    button.classList.remove("stop-button3");
+                }
+
+            } else {
+                try {
+                    const response = await fetch('/stop_long_test_bucintoro', { method: 'POST' });
+                    const result = await response.json();
+                    alert(result.status);
+                } catch (error) {
+                    console.error("Error stopping Long Run Test:", error);
+                } finally {
+                    longrun_in_progress = false;
+                    button.innerHTML = "<img src='/static/play-button.png' alt='Play' style='height:25px'> Run Long Run Test";
+                    button.classList.remove("stop-button3");
                 }
             }
         }

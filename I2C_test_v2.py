@@ -23,6 +23,27 @@ URL_API = sys.argv[3]
 URL_BACKEND = sys.argv[4] 
 IP_PLC = sys.argv[5]
 
+# --- WARNING SU INDIRIZZI MANCANTI ---
+
+def check_missing_addresses(found, start, end, label):
+    if not found:
+        return  # nessun device → nessun warning
+
+    found_sorted = sorted(found)
+    min_addr = found_sorted[0]
+    max_addr = found_sorted[-1]
+
+    # Mancanti PRIMA del minimo trovato (ma >= start)
+    missing_before = [addr for addr in range(start, min_addr) if addr not in found_sorted]
+
+    # Mancanti TRA min e max (buchi interni)
+    missing_inside = [addr for addr in range(min_addr, max_addr + 1) if addr not in found_sorted]
+
+    missing = sorted(set(missing_before + missing_inside))
+
+    if missing:
+        print(f"[BOTH]\033[1m\033[93mWARNING\033[0m: {label} non continui, mancanti: {missing}")
+
 def run_I2C_test(expected_camere, expected_galvo):
     global connected_dev
     global ack_counter_cam
@@ -107,5 +128,7 @@ def run_I2C_test(expected_camere, expected_galvo):
         print("[BOTH]\033[1m\033[92m[OK]\033[0m Test I2C \033[1m\033[92mPASSED\033[0m for Galvo devices")
         
     print("[BOTH]======= END OF I2C TEST ======= \n")
-
+    
+    check_missing_addresses(camera_addresses, 20, 29, "Timing Controller")
+    check_missing_addresses(galvo_addresses, 30, 39, "Galvo Controller")
     return camera_addresses, galvo_addresses

@@ -12,15 +12,35 @@ from URL import get_urls
 # ==========================
 # CONFIGURAZIONE
 # ==========================
-environment = input("Seleziona environment (standard/nn): ").strip().lower()
+print("Seleziona environment:") 
+print("1 = Standard") 
+print("2 = Custom") 
+choice = input("Scelta (1/2): ").strip() 
+if choice == "1": 
+    env = "standard" 
+    custom_data = None 
+elif choice == "2": 
+    env = "custom" 
+    backend_ip = input("Inserisci Backend IP (solo IP, es. 172.30.50.10): ").strip() 
+    plc_ip = input("Inserisci PLC IP (solo IP, es. 172.30.50.20): ").strip() 
+    custom_data = { "BACKEND_IP": backend_ip, "IP_PLC": plc_ip } 
+    # Configura eth0 con l’IP PLC 
+    print(f"Configuring eth0 with custom IP: {plc_ip}") 
+    subprocess.run( ["sudo", "/home/pi/New/ScriptSara/set_custom_network.sh", plc_ip], check=True ) 
+else: 
+    print("Scelta non valida, uso STANDARD.") 
+    env = "standard" 
+    custom_data = None 
+# Ottieni le URL corrette 
+urls = get_urls(env, custom_data)
 N_camere = int(input("Numero moduli camere: "))
 N_galvo = int(input("Numero moduli galvo: "))
 time2run = int(input("Durata totale test (min): "))
 wait_before_test = 90 
-urls = get_urls(environment)
+'''urls = get_urls(environment)
 if environment == "nn": 
     print("Configuring eth0 for Novo Nordisk...")
-    subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)
+    subprocess.run(["sudo", "/home/pi/New/ScriptSara/set_NN_network.sh"], check=True)'''
 
 # Alimentazioni
 CH2 = 2   # 24V

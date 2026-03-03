@@ -250,6 +250,176 @@ def stop_complete_test_bucintoro():
     stop_complete_test_flag['stop_complete_test'] = True
     return jsonify({'status': 'Complete Simulation Test stopping...'})
 
+# ============================
+# LONG RUN TEST
+# ============================
+stop_longrun_test_flag = {'stop_longrun_test': False}
+@app.route('/run_long_test_bucintoro', methods=['POST'])
+def run_long_test_bucintoro():
+    global test_in_progress
+    global stop_longrun_test_flag
+    global log_path, logContent, log_filename
+    global report_path, reportContent, report_filename
+    global main_serial, camera_serials, galvo_serials
+
+    if test_in_progress:
+        return jsonify({'output': 'Long Run Test already executing...'})
+
+    data = request.get_json()
+
+    # Environment
+    environment = data.get("env", "standard")
+    custom_data = None
+    if environment == "custom":
+        custom_data = {
+            "BACKEND_IP": data.get("BACKEND_IP"),
+            "IP_PLC": data.get("IP_PLC")
+        }
+
+    urls = get_urls(environment, custom_data)
+
+    # Configura eth0 se custom
+    if environment == "custom":
+        plc_ip = custom_data.get("IP_PLC")
+        if plc_ip:
+            print(f"Configuring eth0 with custom IP: {plc_ip}")
+            subprocess.run(
+                ["sudo", "/home/pi/New/ScriptSara/set_custom_network.sh", plc_ip],
+                check=True
+            )
+
+    # Parametri del test
+    num_camere = data.get('numCamere', 1)
+    num_galvo = data.get('numGalvo', 1)
+    time2run = data.get('time2run', 60)
+
+    main_serial = data.get('mainSerial', "")
+    camera_serials = data.get('cameraSerials', [])
+    galvo_serials = data.get('galvoSerials', [])
+
+    # Setup report/log
+    test_in_progress = True
+    stop_longrun_test_flag['stop_longrun_test'] = False
+    script_path = 'LongRunTest.py'
+    full_output = ""
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    report_filename = f"LongRun_test_{timestamp}.txt"
+    log_filename = f"LongRun_log_{timestamp}.txt"
+
+    desktop_path = os.path.join("/home/pi/New/ScriptSara", "Bucintoro_Reports")
+    os.makedirs(desktop_path, exist_ok=True)
+
+    report_path = os.path.join(desktop_path, report_filename)
+    log_path = os.path.join(desktop_path, log_filename)
+
+    report_lines = []
+    log_lines = []
+
+    try:
+        process = subprocess.Popen(
+            [
+                'python', '-u', script_path,
+                str(num_camere),
+                str(num_galvo),
+                str(time2run),
+                urls["URL_API"],
+                urls["URL_BACKEND"],
+                urls["IP_PLC"]
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        while True:
+            if stop_longrun_test_flag['stop_longrun_test']:
+                process.terminate()
+                full_output += "\u26A0 Long Run Test stopped by user.\n"
+                log_lines.append("Long Run Test stopped by user.")
+                break
+
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+
+            if line:
+                cleaned_line = line.strip()
+
+                if cleaned_line.startswith("[REPORT]"):
+                    cleaned_line = cleaned_line.replace("[REPORT]", "")
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    report_lines.append(cleaned_line)
+
+                elif cleaned_line.startswith("[LOG]"):
+                    cleaned_line = cleaned_line.replace("[LOG]", "")
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    log_lines.append(cleaned_line)
+
+                elif cleaned_line.startswith("[BOTH]"):
+                    cleaned_line = cleaned_line.replace("[BOTH]", "")
+                    display_line = ansi_to_html(cleaned_line)
+                    cleaned_line = remove_ansi_codes(cleaned_line)
+                    log_lines.append(cleaned_line)
+                    print(display_line)
+                    socketio.emit('test_output', {'line': display_line})
+                    socketio.sleep(0)
+
+                else:
+                    print(cleaned_line)
+
+    except Exception as e:
+        full_output += f"Error during execution of the Long Run Test: {str(e)}\n"
+        print(full_output)
+
+    finally:
+        test_in_progress = False
+        stats = {}  # es: {"Galvo 30": {"PASS": 2, "FAIL": 1}}
+
+        for line in report_lines:
+            if "|" not in line:
+                continue
+
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) != 3:
+                continue
+
+            device = parts[0] 
+            test_name = parts[1].replace("Test:", "").strip()                    
+            result = parts[2].replace("Result:", "").strip().upper()
+
+            if device not in stats: 
+                stats[device] = {} 
+                
+            if test_name not in stats[device]: 
+                stats[device][test_name] = {"PASS": 0, "FAIL": 0}
+
+            if result == "PASSED":
+                stats[device][test_name]["PASS"] += 1
+            elif result == "FAILED":
+                stats[device][test_name]["FAIL"] += 1
+        summary_lines = []
+        summary_lines.append("=========== LONG RUN SUMMARY ===========\n")
+
+        for device, counts in sorted(stats.items()):
+            for test_name in sorted(stats[device].keys()): 
+                counts = stats[device][test_name] 
+                summary_lines.append( 
+                    f"{device} | Test: {test_name} | Result: PASS:{counts['PASS']} FAIL:{counts['FAIL']}" 
+                )
+
+        reportContent = "\n".join(summary_lines)
+        logContent = "\n".join(log_lines)
+    return jsonify({'output': full_output, 'reportPath': report_path, 'logPath': log_path})
+
+
+@app.route('/stop_long_test_bucintoro', methods=['POST'])
+def stop_long_test_bucintoro():
+    global stop_longrun_test_flag
+    stop_longrun_test_flag['stop_longrun_test'] = True
+    return jsonify({'status': 'Long Run Test stopping...'})
+
+
 # Route to download the report file
 @app.route('/download-report')
 def download_report():
