@@ -16,13 +16,6 @@ URLS = {
         "IP_PLC": "10.10.0.20"
     },
 }
-'''
-    "novo": {
-        "URL_API": "http://172.30.135.41/api/v2/main_status",
-        "URL_BACKEND": "http://172.30.135.41",
-        "IP_PLC": "172.30.135.40"
-    }
-}'''
 
 
 def get_urls(env: str, custom_data=None):

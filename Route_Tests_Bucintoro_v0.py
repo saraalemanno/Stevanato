@@ -1,8 +1,9 @@
 # Code for the complete test for the Bucintoro device
 # This code provides a web interface to set the configuration of the tested device (how many modules are connected)
-# and run the complete auto test. This includes: simulation of noise and encoder functionality, gpio test and galvo test
+# and run the auto test, the complete test and the long run test. This includes: simulation of noise and encoder functionality, 
+# gpio test and galvo test, I2C test, configuration, shared bus test and temperature monitoring
 # Author: Sara Alemanno
-# Date: 2025-09-02
+# Date: 2026-03-04
 # Version: 0
 
 # Import necessary libraries
@@ -24,7 +25,10 @@ test_in_progress = False
 def index():
     return render_template('Run_Tests_Bucintoro.html')
 
-# Route to run the tests
+# ============================
+# AUTO-LOOP TEST
+# ============================
+
 stop_loop_test_flag = {'stop_auto_loop_test': False}
 @app.route('/run_test_loop_bucintoro', methods=['POST'])
 def run_test_bucintoro():
@@ -35,11 +39,12 @@ def run_test_bucintoro():
     global reportContent
     global report_filename, main_serial, camera_serials, galvo_serials
 
+    # flag for test execution: prevent from launching the test when it's already executing
     if test_in_progress:
         return jsonify({'output': 'Bucintoro Test already executing...'})
     
     data = request.get_json()
-    environment = data.get("env", "standard") ####
+    environment = data.get("env", "standard")           # Getting the environment from the interface (standard / custom)
     custom_data = None 
     print(environment)
     if environment == "custom": 
@@ -47,7 +52,7 @@ def run_test_bucintoro():
             "BACKEND_IP": data.get("BACKEND_IP"), 
             "IP_PLC": data.get("IP_PLC") 
             }
-    urls = get_urls(environment, custom_data) ####
+    urls = get_urls(environment, custom_data)           # Getting the correct URLS
     if environment == "custom":
         plc_ip = custom_data.get("IP_PLC")
         if plc_ip:
@@ -56,16 +61,18 @@ def run_test_bucintoro():
                 ["sudo", "/home/pi/New/ScriptSara/set_custom_network.sh", plc_ip],
                 check=True
             )
-
+    # Number of modules connected + serial numbers
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)
     main_serial = data.get('mainSerial', 1)
     camera_serials = data.get('cameraSerials', [])
     galvo_serials = data.get('galvoSerials', [])
 
-    test_in_progress = True
+    test_in_progress = True                     
     stop_loop_test_flag['stop_auto_loop_test'] = False
     script_path = 'Run_Tests_Bucintoro_v4.py'
+
+    # Setup report/log
     full_output = ""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_filename = f"Bucintoro_test_{timestamp}.txt"
@@ -138,6 +145,10 @@ def stop_test_bucintoro():
     stop_loop_test_flag['stop_auto_loop_test'] = True
     return jsonify({'status': 'Bucintoro Auto Loop Test stopping...'})
 
+# ============================
+# COMPLETE TEST
+# ============================
+
 stop_complete_test_flag = {'stop_complete_test': False}
 @app.route('/run_complete_test_bucintoro', methods=['POST'])
 def run_complete_test_bucintoro():
@@ -147,11 +158,12 @@ def run_complete_test_bucintoro():
     global reportContent, logContent
     global report_filename, log_filename, main_serial, camera_serials, galvo_serials
 
+    # flag for test execution: prevent from launching the test when it's already executing
     if test_in_progress:
         return jsonify({'output': 'Complete Simulation Test already executing...'})
     
     data = request.get_json()
-    environment = data.get("env", "standard") ####
+    environment = data.get("env", "standard")           # Getting the environment (standard/custom)
     print(environment)
     custom_data = None 
     if environment == "custom": 
@@ -159,8 +171,7 @@ def run_complete_test_bucintoro():
             "BACKEND_IP": data.get("BACKEND_IP"), 
             "IP_PLC": data.get("IP_PLC") 
             }
-    urls = get_urls(environment, custom_data) ####
-    #urls = get_urls(environment) ####
+    urls = get_urls(environment, custom_data)           # Getting the correct URLS
     if environment == "custom":
         plc_ip = custom_data.get("IP_PLC")
         if plc_ip:
@@ -169,16 +180,18 @@ def run_complete_test_bucintoro():
                 ["sudo", "/home/pi/New/ScriptSara/set_custom_network.sh", plc_ip],
                 check=True
             )
-
+    # Number of modules connected + serial numbers
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)
     main_serial = data.get('mainSerial', 1)
     camera_serials = data.get('cameraSerials', [])
     galvo_serials = data.get('galvoSerials', [])
 
-    test_in_progress = True
+    test_in_progress = True                             
     stop_complete_test_flag['stop_complete_test'] = False
     script_path = 'Complete_Test_Bucintoro_v2.py'
+
+    # Setup report/log
     full_output = ""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_filename = f"Complete_Bucintoro_test_{timestamp}.txt"
@@ -262,12 +275,13 @@ def run_long_test_bucintoro():
     global report_path, reportContent, report_filename
     global main_serial, camera_serials, galvo_serials
 
+    # flag for test execution: prevent from launching the test when it's already executing
     if test_in_progress:
         return jsonify({'output': 'Long Run Test already executing...'})
 
     data = request.get_json()
 
-    # Environment
+    # Getting the environment (standard/custom)
     environment = data.get("env", "standard")
     custom_data = None
     if environment == "custom":
@@ -288,7 +302,7 @@ def run_long_test_bucintoro():
                 check=True
             )
 
-    # Parametri del test
+    # Number of modules connected+ serial numbers
     num_camere = data.get('numCamere', 1)
     num_galvo = data.get('numGalvo', 1)
     time2run = data.get('time2run', 60)
@@ -306,13 +320,10 @@ def run_long_test_bucintoro():
 
     report_filename = f"LongRun_test_{timestamp}.txt"
     log_filename = f"LongRun_log_{timestamp}.txt"
-
     desktop_path = os.path.join("/home/pi/New/ScriptSara", "Bucintoro_Reports")
     os.makedirs(desktop_path, exist_ok=True)
-
     report_path = os.path.join(desktop_path, report_filename)
     log_path = os.path.join(desktop_path, log_filename)
-
     report_lines = []
     log_lines = []
 
@@ -472,7 +483,7 @@ def download_report():
                         if 0 <= idx < len(serial_list):
                             serialN = serial_list[idx]
                         else:
-                            # Se l’indice NON è valido → NON assegnare nulla
+                            # Se l’indice NON è valido, NON assegnare nulla
                             # (serialN rimane main_serial SOLO se device_id non era numerico)
                             serialN = ""
                     rows.append([device_name, str(serialN), test_name, result])
@@ -493,16 +504,16 @@ def download_report():
 @app.route('/download-log')
 def download_log():
     global logContent, log_path
-    #path = request.args.get('path')
-    #with open(log_filename, "w") as log_file:
     if log_path and logContent:
         with open(log_path, 'w') as log_file:
             log_file.write("===== Bucintoro Test Log =====\n")
             log_file.write(f"Main Module Serial Number:  {main_serial}\n")    
             log_file.write("\nCamera Modules Serial Numbers:\n")
+
             for i, serial in enumerate(camera_serials, start=1):
                 log_file.write(f"- Camera {i}: {serial}\n")
             log_file.write("\nGalvo Modules Serial Numbers:\n")
+            
             for i, serial in enumerate(galvo_serials, start=1):
                 log_file.write(f"- Galvo {i}: {serial}\n")
             log_file.write("\n--------- Log Output ---------\n\n")

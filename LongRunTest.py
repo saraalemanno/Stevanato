@@ -1,6 +1,6 @@
 import pyvisa
 from pyvisa.constants import StopBits, Parity
-from ArduinoController import init_serial
+from PowerSupplyController import init_serial
 import time
 import os, sys
 import subprocess
@@ -138,7 +138,7 @@ while time.time() < end_time:
                 cleaned_line = line.strip()
                 print(cleaned_line)
                 if "ERROR" in cleaned_line:
-                    print(f"[BOTH]Cycle {cycle_count}: {cleaned_line}")
+                    print(f"[LOG]Cycle {cycle_count}: {cleaned_line}")
                     failures += 1
 
         # POWER OFF

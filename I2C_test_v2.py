@@ -1,16 +1,15 @@
 # Test per controllare che ogni indirizzo di memoria sia associato a un singolo device
-# Logico: Identificare il numero di moduli Camere e Galvo sono collegati al sistema in fase di test
+# Logica: Identificare il numero di moduli Camere e Galvo collegati al sistema in fase di test
 # Mandare una richiesta a ogni indirizzo possibile da 20 a 39 e conta quante risposte ottiene, se il numero corrisponde a 
 # quello definito, allora il test è passato (ogni device ha un indirizzo diverso), se sono di meno, il test è fallito
 # Obiettivo: Verificare che i pin errati che mettono in comune la memoria I2C sul bus parallelo siano stati fisicamente tagliati
 # Author: Sara Alemanno
-# Date: 2025-09-01
+# Date: 2026-03-02
 # Version: 2
 
 import time
 import socketio
 import sys
-#from URL import URL_BACKEND
 
 ack_counter_cam = 0
 ack_counter_galvo = 0
@@ -43,6 +42,10 @@ def check_missing_addresses(found, start, end, label):
 
     if missing:
         print(f"[BOTH]\033[1m\033[93mWARNING\033[0m: {label} non continui, mancanti: {missing}")
+
+# ==========================
+# TEST I2C
+# ==========================
 
 def run_I2C_test(expected_camere, expected_galvo):
     global connected_dev

@@ -45,10 +45,10 @@ open_ports = {}   # port -> serial.Serial instance
 arduino_main = None
 
 def detect_devices():
-    print("[ARDUINO] Scansione porte USB...")
+    print("[BOTH][ARDUINO] Scansione porte USB...")
 
     ports = glob.glob("/dev/ttyUSB*")
-    print(f"[ARDUINO] Porte trovate: {ports}")
+    print(f"[BOTH][ARDUINO] Porte trovate: {ports}")
 
     arduinos = {}
 
@@ -64,10 +64,10 @@ def detect_devices():
             try:
                 ser = serial.Serial(port=port, baudrate=9600, timeout=1)
                 open_ports[port] = ser
-                print(f"[ARDUINO]  ✔ Porta {port} aperta ora.")
+                print(f"[BOTH][ARDUINO]  ✔ Porta {port} aperta ora.")
                 time.sleep(2)
             except Exception as e:
-                print(f"[ARDUINO]  ❌ Errore apertura {port}: {e}")
+                print(f"[BOTH][ARDUINO]  ❌ Errore apertura {port}: {e}")
                 continue
 
         # Interrogo l'Arduino
@@ -80,7 +80,7 @@ def detect_devices():
 
             if line.startswith("ADDRESS:"):
                 addr = int(line.split(":")[1])
-                print(f"[ARDUINO]  ✔ Arduino address {addr} risponde su {port}")
+                print(f"[BOTH][ARDUINO]  ✔ Arduino address {addr} risponde su {port}")
                 arduinos[addr] = ArduinoDevice(port=port, address=addr)
             else:
                 print(f"[ARDUINO]  ⚠ Nessuna risposta valida da {port}: '{line}'")
@@ -88,7 +88,7 @@ def detect_devices():
         except Exception as e:
             print(f"[ARDUINO]  ❌ Errore comunicazione con {port}: {e}")
 
-    print(f"[ARDUINO] Rilevati {len(arduinos)} Arduino: {list(arduinos.keys())}")
+    print(f"[BOTH][ARDUINO] Rilevati {len(arduinos)} Arduino: {list(arduinos.keys())}")
     return arduinos
 
     

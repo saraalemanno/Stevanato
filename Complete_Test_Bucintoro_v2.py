@@ -28,23 +28,30 @@ from cfg_mode import set_device_to_cfg
 
 sys.stdout.reconfigure(encoding='utf-8')    # To print special characters
 
+# ==========================
+# CONFIGURAZIONE
+# ==========================
 stop_event = threading.Event()
 MASTER_ADDRESS = 0                          #Arduino master address
 URL_API = sys.argv[3] 
 URL_BACKEND = sys.argv[4] 
 IP_PLC = sys.argv[5]
+
+# ==========================
+# TEST START
+# ==========================
 if __name__ == "__main__":
     print("[BOTH]======== START OF THE COMPLETE TEST ========\n")
 
     arduinos = detect_devices()
     if MASTER_ADDRESS not in arduinos:
-        print("[ERROR] Arduino con address 0 NON trovato! Impossibile continuare.")
+        print("[BOTH][ERROR] Arduino con address 0 NON trovato! Impossibile continuare.")
         sys.exit(1)
 
     arduino_main = arduinos[MASTER_ADDRESS]
     ArduinoDevice.main_device = arduino_main
 
-    print(f"[MAIN] Uso Arduino address 0 come master (porta {arduino_main.port})")
+    print(f"[BOTH][MAIN] Uso Arduino address 0 come master (porta {arduino_main.port})")
     arduino_list = [arduinos[addr] for addr in sorted(arduinos.keys())]
 
     Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
@@ -57,7 +64,9 @@ if __name__ == "__main__":
 
     time.sleep(2)
 
-    # Check encoder phase: Test result
+    # ==========================
+    # CHECK ENCODER PHASES
+    # ==========================
     err_phase, errors = check_encoder_phases(URL_API)
     if err_phase is not None and errors != 0:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test Result: \033[1m\033[91mFAILED\033[0m!")
@@ -66,7 +75,6 @@ if __name__ == "__main__":
         print("[REPORT] Pulse | Test: Encoder Test | Result: FAILED")
         # Stopping noise and encoder simulation
         arduino_main.stop_noise()
-
         stop_event.set()
         Tmonitor_thread.join()
         sys.exit()
@@ -81,6 +89,9 @@ if __name__ == "__main__":
         print("[BOTH]All phases are working correctly.\n")
         print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
 
+    # ==========================
+    # CHECK SHARED BUS PINS
+    # ==========================
     missing_cfg = arduino_main.get_missing_cfg()
     time.sleep(0.5)
     run_galvo_pin = arduino_main.get_run_galvo()
@@ -99,25 +110,32 @@ if __name__ == "__main__":
     if run_pulse_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_3 (Stop_Run_Pulse) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_3 | Result:FAILED")
-        '''arduino_main.stop_noise()
+        '''Commentato per non rendere bloccante il controllo sul bus parallelo
+        arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
         sys.exit()'''
     if run_galvo_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_2 (Stop_Run_Galvo) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_2 | Result:FAILED")
-        '''arduino_main.stop_noise()
+        '''Commentato per non rendere bloccante il controllo sul bus parallelo
+        arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
         sys.exit()'''
     if run_camera_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_6 (Stop_Run_Camere) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_6 | Result:FAILED")
-        '''arduino_main.stop_noise()
+        '''Commentato per non rendere bloccante il controllo sul bus parallelo
+        arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
         sys.exit()'''
         
+    # ==========================
+    # CONFIGURAZIONE DEI MODULI COLLEGATI
+    # ==========================
+
     if len(sys.argv) < 3:
         print("[BOTH]Numbers of connected modules is not provided!")
         sys.exit()
@@ -125,8 +143,7 @@ if __name__ == "__main__":
         Nmodule_camere = int(sys.argv[1])
         Nmodule_galvo = int(sys.argv[2])
         camera_addresses, galvo_addresses = run_I2C_test(Nmodule_camere, Nmodule_galvo)
-        
-        #camera_addresses = list(range(20,30))
+
         addresses_C = camera_addresses[:Nmodule_camere]
         for address in addresses_C:
             send_configuration_camera(URL_API,address)
@@ -143,8 +160,7 @@ if __name__ == "__main__":
                 arduino_main.stop_noise()
                 Tmonitor_thread.join()
                 sys.exit()
-            
-        #galvo_addresses = list(range(30,40))
+
         addresses_G = galvo_addresses[:Nmodule_galvo]
         for address_G in addresses_G:
             send_configuration_galvo(URL_API,address_G)
@@ -162,7 +178,10 @@ if __name__ == "__main__":
                 Tmonitor_thread.join()
                 sys.exit()
 
-        # Add Main Device
+        # ==========================
+        # CONFIGURAZIONE DEL MODULO PULSE
+        # ==========================
+
         send_configuration_pulse(URL_API,10)                                          # Send configuration to Pulse device
         time.sleep(10)
         if not send_config_pulse.isPulseFound:
@@ -178,7 +197,9 @@ if __name__ == "__main__":
             Tmonitor_thread.join()
             sys.exit()
 
-        # Check the missing cfg pin from the shared bus (SHARED_IO_1)
+        # ==========================
+        # CONFIGURAZIONE DEL PIN SHARE_IO_1
+        # ==========================
         missing_cfg = arduino_main.get_missing_cfg()
         if missing_cfg != 1:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Missing cfg is not 1 after the configuration! Value:", missing_cfg)
@@ -193,7 +214,10 @@ if __name__ == "__main__":
             print("[REPORT] Shared Bus | Test: MissingCfg Functionality | Result: PASSED")
 
         
-        # Send PLC configuration
+        # ==========================
+        # CONFIGURAZIONE DEL PLC
+        # ==========================
+
         send_configuration_PLC()
         time.sleep(5)
         if not send_config_PLC.isPLCConfigured:
@@ -207,6 +231,10 @@ if __name__ == "__main__":
             arduino_main.stop_noise()
             Tmonitor_thread.join()
             sys.exit()
+
+        # ==========================
+        # GO 2 RUN
+        # ==========================
 
         print("[LOG][PLC] Checking the conditions to go to RUN mode...")
         errors = go2Run()                                                            # Send start command to backend
@@ -226,7 +254,11 @@ if __name__ == "__main__":
             Tmonitor_thread.join()
             sys.exit()
         time.sleep(1)
-        # Check the pin on the shared bus: SHARE_IO_2, SHARE_IO_3, SHARE_IO_6
+
+        # ==========================
+        # CHECK SHARED BUS PINS
+        # ==========================
+
         events = arduino_main.get_bus_events()
         if not events:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Impossible to read from shared bus!")
@@ -244,6 +276,10 @@ if __name__ == "__main__":
             print("[BOTH]\033[1m\033[92m[OK]\033[0m Commutation detected on run pins after going to RUN")
             #print("[REPORT] Shared Bus | Test: RunPins | Result: PASSED")
 
+        # ==========================
+        # CHECK TIMING CONTROLLER
+        # ==========================
+
         time.sleep(3)
         for i, arduino in enumerate(arduino_list): 
             if i >= len(addresses_C): 
@@ -254,6 +290,11 @@ if __name__ == "__main__":
             arduino.reset_pins()
         stop_event.set()
         Tmonitor_thread.join()
+
+        # ==========================
+        # CHECK GALVO CONTROLLER
+        # ==========================
+
         time.sleep(5)
         for i, arduino in enumerate(arduino_list):  
             if i >= len(addresses_G): 
@@ -262,8 +303,6 @@ if __name__ == "__main__":
             check_galvo(galvo_addr, arduino)
             time.sleep(5)
         Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
-        #Tmonitor_thread.daemon = True                                         # Thread ends when main program ends
-        Tmonitor_thread.start()
         time.sleep(10)
         send_stop_request()                                                    # Send stop command to backend
         time.sleep(2)
@@ -272,7 +311,7 @@ if __name__ == "__main__":
         events = arduino_main.get_bus_events()
         if not events:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: Impossible to read from shared bus!")
-            #sys.exit(1)
+            
         sharedpin_commutation = [name for name in ("galvo", "pulse", "camera") if not events[name]]
         if sharedpin_commutation:
             print(f"[BOTH]\033[1m\033[91mERROR\033[0m: No commutation on pin: run {', '.join(sharedpin_commutation)} after going to RUN!")

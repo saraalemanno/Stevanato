@@ -9,11 +9,8 @@ import requests
 import time
 import json
 import os
-#from URL import URL_API
 
-
-#URL_API = 'http://10.10.0.25'                       # Bucintoro Backend URL
-
+# Flag usata per registrare se il device ha risposto correttamente
 isDeviceFound = False
 
 def send_configuration_camera(URL_API,address):

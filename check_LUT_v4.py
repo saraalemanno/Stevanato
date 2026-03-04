@@ -63,22 +63,6 @@ lut = [
     {"offset": [387, 396], "pin": 31}
 ]
 
-# Map input → output
-input_to_outputs = {
-    0: [0, 12, 24],                # DIO 9
-    1: [1, 13, 25],                # DIO 9
-    2: [2, 14, 26],                # DIO 10
-    3: [3, 15, 27],                # DIO 10
-    4: [4, 16, 28],                # DIO 10
-    5: [5, 17, 29],                # DIO 13
-    6: [6, 18, 30],                # DIO 13
-    7: [7, 19, 31],                # DIO 13
-    8: [8, 20],                    # DIO 14
-    9: [9, 21],                    # DIO 14
-    10: [10, 22],                  # DIO 14
-    11: [11, 23]                   # DIO 14
-}
-
 # LUT for Galvo device
 galvo_lut = [
     {"enc": [0, 50],  "galvo": 32767},
@@ -87,39 +71,9 @@ galvo_lut = [
     #{"enc": [365, 379], "galvo": 32767},
 ] 
 
-'''galvo_lut = [
-    {"enc": [65, 75],  "galvo": 25460},
-    {"enc": [165, 175], "galvo": 28993},
-    {"enc": [265, 275], "galvo": 38743},
-    {"enc": [365, 379], "galvo": 32767},
-]'''
-
-galvo_points = [ 
-    (0, 32767), 
-    (50, 25460), 
-    (100, 25460), 
-    (150, 28993), 
-    (200, 28993), 
-    (250, 38743), 
-    (300, 38743), 
-    (350, 32767), 
-    ]
-
 # === Get expected pins from LUT based on encoder position ===
-'''def get_expected_pins(pos_encoder, active_dio, tolerance):
-    exact_matches = [entry["pin"] for entry in lut if entry["offset"][0] <= pos_encoder <= entry["offset"][1]]
-    if exact_matches:
-        return exact_matches
-    # Se non ci sono match esatti, e ci sono DIO attivi, cerca con tolleranza
-    if active_dio:
-        return [
-            entry["pin"]
-            for entry in lut
-            if max(0, entry["offset"][0] - tolerance) <= pos_encoder <= min(399, entry["offset"][1] + tolerance)
-        ]
-    # Altrimenti, nessun pin atteso
-    return []'''
 def get_expected_pins(pos_encoder, active_dio, tolerance):
+
     # 1. Match esatto per encoder
     exact = [entry["pin"] for entry in lut
              if entry["offset"][0] <= pos_encoder <= entry["offset"][1]]
@@ -137,7 +91,6 @@ def get_expected_pins(pos_encoder, active_dio, tolerance):
     entry = next((e for e in lut if e["pin"] == pin), None)
     if not entry:
         return []
-
     start, end = entry["offset"]
 
     # Distanza dell'encoder dall'intervallo del pin attivo
@@ -157,7 +110,10 @@ def get_expected_pins(pos_encoder, active_dio, tolerance):
 
 
 
-# === Check Camera device ===
+# ==========================
+# TIMING CONTROLLER TEST
+# ==========================
+
 def check_camera(address, arduino):
     print("[BOTH]======== START OF THE CAMERA PIN TEST ========\n")
     last_pos = -1                    # Last encoder position initialization
@@ -170,17 +126,13 @@ def check_camera(address, arduino):
     start_time = time.time()
     while time.time() - start_time < test_duration:  # Stabilization time
         time.sleep(1)
-        #pos_encoder = get_pos_encoder(ser)
-        '''if pos_encoder == last_pos:
-            continue'''
-        pin_states, pos_encoder = arduino.output_pins() #output_pins(ser)
-        #last_pos = pos_encoder                                                                              
+        pin_states, pos_encoder = arduino.output_pins()                                                                              
         active_dio = []
         active_dio = [i for i, state in enumerate(pin_states) if state == 1]
 
         print(f"[LOG]Active DIO: {active_dio} at encoder position: {pos_encoder}")
         expected_dio = get_expected_pins(pos_encoder, active_dio, tolerance=1)
-        #print("DEBUG 4")
+
         if set(active_dio) != set(expected_dio):
             test_passed = False
             errors += 1
@@ -208,12 +160,14 @@ def check_camera(address, arduino):
 # === Get expected galvo angle from LUT based on encoder position === 
 def get_active_interval(pos_encoder):
     for entry in galvo_lut:
-        #print(f"entry 0: {entry["enc"][0]}, entry 1: {entry["enc"][1]}, pos encoder: {pos_encoder}")
+        
         if entry["enc"][0] <= pos_encoder <= entry["enc"][1]:
             return entry
     return None
 
-# === Check Galvo device ===
+# ==========================
+# GALVO CONTROLLER TEST
+# ==========================
 def check_galvo(address_G, arduino):
     print("[BOTH]======== START OF THE GALVO TEST ========\n")
 
@@ -252,7 +206,7 @@ def check_galvo(address_G, arduino):
                     continue 
                 else: 
                     print("[LOG] No angles received even after restart. Possible Arduino failing.") 
-                    #test_passed = False 
+
                     error_details_G.append("No angles received after restart attempt") 
                     break
             continue
@@ -264,7 +218,6 @@ def check_galvo(address_G, arduino):
 
         enc_range = tuple(interval["enc"])
         expected_angle = interval["galvo"]
-        #expected_angle = expected_galvo_from_config(pos_encoder)
 
         if enc_range in validated_intervals:
             print("[LOG]Interval already validated")
@@ -282,8 +235,6 @@ def check_galvo(address_G, arduino):
                 f"At encoder {pos_encoder}: Expected {expected_angle}, got {value}"
             )
         else:
-            #test_passed = False
-            #errors += 1
             msg = f"At encoder {pos_encoder}: Expected {expected_angle}, got {value}"
             error_details_G.append(msg)
             print("[LOG]" + msg)
@@ -297,7 +248,7 @@ def check_galvo(address_G, arduino):
 
     # --- REPORT ---
     if test_passed and received:
-        print("[BOTH]\033[1m\033[92m[OK]\033[0m Galvo Device Test: PASSED\n")
+        print("[BOTH]\033[1m\033[92m[OK]\033[0m Galvo Device Test: \033[1m\033[92mPASSED\033[0m!\n")
         print(f"[REPORT] Galvo Controller {address_G} | Test: Galvo Run | Result: PASSED")
         print(f"[LOG]Working details: {working_details_G}")
     else:

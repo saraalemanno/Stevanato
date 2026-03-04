@@ -16,8 +16,10 @@ import time
 import serial
 import sys
 import threading
-#from URL import URL_API
 
+# ==========================
+# CONFIGURAZIONE
+# ==========================
 stop_event = threading.Event()
 MASTER_ADDRESS = 0                          #Arduino master address
 URL_API = sys.argv[3] 
@@ -27,12 +29,13 @@ if __name__ == "__main__":
     print("[BOTH]======== START OF THE SINGLE TESTS ========\n")
     arduinos = detect_devices()
     if MASTER_ADDRESS not in arduinos:
-        print("[ERROR] Arduino con address 0 NON trovato! Impossibile continuare.")
+        print("[BOTH][ERROR] Arduino con address 0 NON trovato! Impossibile continuare.")
         sys.exit(1)
 
     arduino_main = arduinos[MASTER_ADDRESS]
-    print(f"[MAIN] Uso Arduino address 0 come master (porta {arduino_main.port})")
-    # Sort Arduino list by address for consistent mapping 
+    ArduinoDevice.main_device = arduino_main
+
+    print(f"[BOTH][MAIN] Uso Arduino address 0 come master (porta {arduino_main.port})")
     arduino_list = [arduinos[addr] for addr in sorted(arduinos.keys())]
     
     Tmonitor_thread = threading.Thread(target=check_temperature.monitor_temperature, args=(URL_API,stop_event))
@@ -45,7 +48,9 @@ if __name__ == "__main__":
     arduino_main.start_noise()
     time.sleep(1)
 
-    # Check encoder phase: Test result
+    # ==========================
+    # CHECK ENCODER PHASES
+    # ==========================
     err_phase, errors = check_encoder_phases(URL_API)
     if err_phase is not None and errors != 0:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Encoder Test FAILED!")
@@ -53,16 +58,13 @@ if __name__ == "__main__":
         print("[BOTH]Exiting...")
         print("[REPORT] Pulse | Test: Encoder Test | Result: FAILED")
         # Stopping noise and encoder simulation
-    #    for arduino in arduinos.values():
-    #        arduino.close()
-        stop_event.set()
+        arduino_main.stop_noise()
         Tmonitor_thread.join()
         sys.exit()
     elif stop_event.is_set():
         print("[BOTH] \033[1m\033[91mERROR\033[0m: Temperature critical limit reached during the test! Exiting...")
         # Stopping noise and encoder simulation
-    #    for arduino in arduinos.values():
-    #        arduino.close()
+        arduino_main.stop_noise()
         Tmonitor_thread.join()
         sys.exit()
     else:
@@ -70,6 +72,9 @@ if __name__ == "__main__":
         print("[BOTH]All phases are working correctly.\n")
         print("[REPORT] Pulse | Test: Encoder Test | Result: PASSED")
 
+    # ==========================
+    # CHECK SHARED BUS PINS
+    # ==========================
     missing_cfg = arduino_main.get_missing_cfg()
     time.sleep(0.5)
     run_galvo_pin = arduino_main.get_run_galvo()
@@ -88,31 +93,40 @@ if __name__ == "__main__":
     if run_pulse_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_3 (Stop_Run_Pulse) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_3 | Result:FAILED")
+        '''Commentato per non rendere bloccante il controllo sul bus parallelo
         arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
-        sys.exit()
+        sys.exit()'''
     if run_galvo_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_2 (Stop_Run_Galvo) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_2 | Result:FAILED")
+        ''' Commentato per non rendere bloccante il controllo sul bus parallelo
         arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
-        sys.exit()
+        sys.exit()'''
     if run_camera_pin != 1:
         print(f"[BOTH]\033[1m\033[91mERROR\033[0m: Shared pin SHARE_IO_6 (Stop_Run_Camere) \033[1m\033[91mBROKEN\033[0m!")
         print("[REPORT] Shared Bus | Test: SHARE_IO_6 | Result:FAILED")
+        '''Commentato per non rendere bloccante il controllo sul bus parallelo
         arduino_main.stop_noise()
         stop_event.set()
         Tmonitor_thread.join()
-        sys.exit()
+        sys.exit()'''
     
     
-    # Add Main Device
+    # ==========================
+    # SOTTOSCRIZIONE DEL MODULO PULSE
+    # ==========================
+
     script_addMainDevice = 'add_MainDevice.py'
     subprocess.run(['python', '-u', script_addMainDevice])
 
-    # Run the I2C test, GPIO test, Galvo test
+    # ==========================
+    # I2C TEST
+    # ==========================
+
     if len(sys.argv) < 3:
         print("[BOTH]\033[1m\033[91mERROR\033[0m: Numbers of connected modules is not provided!")
         sys.exit()
@@ -124,22 +138,29 @@ if __name__ == "__main__":
         if I2C_test_v2.error_i2c:
             print("[BOTH]\033[1m\033[91mERROR\033[0m: I2C Test FAILED! Exiting...")
             # Stopping Noise and Encoder simulation
-    #        for arduino in arduinos.values():
-    #            arduino.close()
+            arduino_main.stop_noise()
             stop_event.set()
             Tmonitor_thread.join()
             sys.exit()
-        #camera_addresses = list(range(20,30))
+
+        # ==========================
+        # CHECK TIMING CONTROLLER: GPIO TEST
+        # ==========================
+
         addresses_C = camera_addresses[:Nmodule_camere]
         for i, arduino in enumerate(arduino_list): 
             if i >= len(addresses_C): 
-                break # non ci sono più moduli camera da testare
+                break               # non ci sono più moduli camera da testare
             print("[BOTH]\n") 
             camera_addr = addresses_C[i]
             run_gpio_test(URL_BACKEND,camera_addr, arduino)
             time.sleep(150)
             arduino.reset_pins()
-        #galvo_addresses = list(range(30,40))
+        
+        # ==========================
+        # CHECK GALVO CONTROLLER: GALVO TEST
+        # ==========================
+
         addresses_G = galvo_addresses[:Nmodule_galvo]
         time.sleep(1)
         for i, arduino in enumerate(arduino_list): 
@@ -151,9 +172,8 @@ if __name__ == "__main__":
             time.sleep(20)
             
     # Stopping Noise and Encoder simulation
-    #for arduino in arduinos.values():
-    #    arduino.close()
-
-    time.sleep(2)
+    stop_event.set()
+    Tmonitor_thread.join()
+    arduino_main.stop_noise()
 
     print("[BOTH]======== END OF THE AUTOLOOP TEST ========")
